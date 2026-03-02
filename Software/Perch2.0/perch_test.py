@@ -35,7 +35,7 @@ def frac_audio(in_folder, out_folder):
                 out_filename = f"{name_without_ext}_part{i}.wav"
                 out_path = os.path.join(out_folder, out_filename)
                 sf.write(out_path, segment, sr)
-            print(f"✅ {filename} découpé en {num_segments} segments.")
+            print(f"{filename} découpé en {num_segments} segments.")
 
 
 
@@ -54,7 +54,7 @@ def assess_neutral(folder_path):
     signatures = []
     audio_files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.wav', '.mp3', '.flac'))]
     if not audio_files:
-        print("❌ Aucun fichier trouvé dans le dossier neutre.")
+        print("Aucun fichier trouvé dans le dossier neutre.")
         return None, None
     print(f"Analyse de {len(audio_files)} segments neutres...")
     for filename in audio_files:
@@ -69,7 +69,7 @@ def assess_neutral(folder_path):
     std_dev = np.std(matrix_normal, axis=0)
     overall_stability = np.mean(std_dev)
     print("-" * 30)
-    print("✅ Signature de référence générée avec succès !")
+    print("Signature de référence générée avec succès !")
     print(f"Stabilité du milieu (plus c'est bas, mieux c'est) : {overall_stability:.4f}")
     print("-" * 30)
 
@@ -80,10 +80,10 @@ def check_anomaly(new_sample_path, reference, threshold=0.25):
     dist = cosine(new_sig, reference)
     file_name = os.path.basename(new_sample_path)
     if dist > threshold:
-        print(f"⚠️ ANOMALIE : {file_name:30} | Distance : {dist:.4f}")
+        print(f"ANOMALY : {file_name:30} | Distance : {dist:.4f}")
         return True
     else:
-        print(f"✅ RAS      : {file_name:30} | Distance : {dist:.4f}")
+        print(f"Nothing      : {file_name:30} | Distance : {dist:.4f}")
         return False
 
 def compile_reference():
@@ -145,7 +145,7 @@ if __name__ == "__main__":
                 })
 
             except Exception as e:
-                print(f"❌ Erreur sur le fichier {filename}: {e}")
+                print(f"Erreur sur le fichier {filename}: {e}")
         results_sorted = sorted(all_results, key=lambda x: x['Distance'], reverse=True)
         keys = ['Source Audio', 'Part', 'Début (sec)', 'Début (min:sec)', 'Distance', 'Status']
         try:
@@ -160,9 +160,9 @@ if __name__ == "__main__":
             print("\nTop 5 des anomalies détectées :")
             for res in results_sorted[:5]:
                 if res['Distance'] > threshold:
-                    print(f"⚠️ {res['Source Audio']} (Part {res['Part']}) - Distance: {res['Distance']}")
+                    print(f"{res['Source Audio']} (Part {res['Part']}) - Distance: {res['Distance']}")
         except Exception as e:
-            print(f"❌ Erreur lors de l'écriture du CSV : {e}")
+            print(f"Erreur lors de l'écriture du CSV : {e}")
         end_total = time.perf_counter()
         print("\n" + "=" * 40)
         print(f"⏱ Temps total de traitement : {end_total - start_total:.2f} secondes")
