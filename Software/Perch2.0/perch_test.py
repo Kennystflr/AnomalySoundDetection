@@ -8,7 +8,7 @@ import soundfile as sf
 from scipy.spatial.distance import cosine
 import time
 
-session = ort.InferenceSession("perch_v2.onnx")
+session = ort.InferenceSession("Software/Perch2.0/perch_v2.onnx")
 
 def frac_audio(in_folder, out_folder):
     if not os.path.exists(out_folder):
