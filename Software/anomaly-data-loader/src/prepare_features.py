@@ -18,14 +18,14 @@ N_FFT = 1024
 HOP_LENGTH = 512
 N_MELS = 64
 
-RAW_DATA_DIR = Path("raw_data")
-AUDIO_CHUNK_DIR = Path("data/audio_chunks")
-MEL_DIR = Path("data/mels")
-EMBEDDING_DIR = Path("data/embeddings")
+RAW_DATA_DIR = Path("/mnt/elephant-seals/cetaceans")
+AUDIO_CHUNK_DIR = Path("Software/anomaly-data-loader/data/audio_chunks")
+MEL_DIR = Path("Software/anomaly-data-loader/data/mels")
+EMBEDDING_DIR = Path("Software/anomaly-data-loader/data/embeddings")
 
-METADATA_CSV = Path("data/metadata.csv")
-REFERENCE_EMB = Path("data/reference_embedding.npy")
-REFERENCE_STD = Path("data/reference_std.npy")
+METADATA_CSV = Path("Software/anomaly-data-loader/data/metadata.csv")
+REFERENCE_EMB = Path("Software/anomaly-data-loader/data/reference_embedding.npy")
+REFERENCE_STD = Path("Software/anomaly-data-loader/data/reference_std.npy")
 
 # Anomaly detection threshold
 ANOMALY_THRESHOLD = 0.25
@@ -75,9 +75,9 @@ def chunk_wav_file(wav_path, perch_extractor, metadata_rows):
         if audio_out.exists() and mel_out.exists() and emb_out.exists():
             metadata_rows.append({
                 "chunk_id": base_name,
-                "audio_path": str(audio_out.relative_to(Path.cwd())),
-                "mel_path": str(mel_out.relative_to(Path.cwd())),
-                "embedding_path": str(emb_out.relative_to(Path.cwd())),
+                "audio_path": str(audio_out),
+                "mel_path": str(mel_out),
+                "embedding_path": str(emb_out),
                 "label": -1,  # unknown
                 "distance_to_ref": -1.0
             })
@@ -115,9 +115,9 @@ def chunk_wav_file(wav_path, perch_extractor, metadata_rows):
             
             metadata_rows.append({
                 "chunk_id": base_name,
-                "audio_path": str(audio_out.relative_to(Path.cwd())),
-                "mel_path": str(mel_out.relative_to(Path.cwd())),
-                "embedding_path": str(emb_out.relative_to(Path.cwd())),
+                "audio_path": str(audio_out),
+                "mel_path": str(mel_out),
+                "embedding_path": str(emb_out),
                 "label": label,
                 "distance_to_ref": round(distance, 4)
             })
@@ -125,9 +125,9 @@ def chunk_wav_file(wav_path, perch_extractor, metadata_rows):
             print(f"Error extracting embedding for {base_name}: {e}")
             metadata_rows.append({
                 "chunk_id": base_name,
-                "audio_path": str(audio_out.relative_to(Path.cwd())),
-                "mel_path": str(mel_out.relative_to(Path.cwd())),
-                "embedding_path": str(emb_out.relative_to(Path.cwd())),
+                "audio_path": str(audio_out),
+                "mel_path": str(mel_out),
+                "embedding_path": str(emb_out),
                 "label": -1,
                 "distance_to_ref": -1.0
             })

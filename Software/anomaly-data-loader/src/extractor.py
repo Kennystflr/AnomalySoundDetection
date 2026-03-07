@@ -12,7 +12,7 @@ from scipy.spatial.distance import cosine
 class PerchExtractor:
     """Extract embeddings using Perch 2.0 model."""
     
-    def __init__(self, model_path: str = "../../Perch2.0/perch_v2.onnx"):
+    def __init__(self, model_path: str = "Software/anomaly-data-loader/src/perch_v2.onnx"):
         """
         Initialize Perch 2.0 extractor.
         
