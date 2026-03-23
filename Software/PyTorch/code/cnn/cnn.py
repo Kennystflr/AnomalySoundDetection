@@ -5,7 +5,7 @@ from torchsummary import summary
 class CNNNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        #4 conv blocks / flatten / linear / softmax
+        #4 conv blocks / flatten / linear
         self.conv1 = nn.Sequential(
             nn.Conv2d(
                 in_channels=1, #input data
@@ -52,8 +52,7 @@ class CNNNetwork(nn.Module):
         )
 
         self.flatten = nn.Flatten()
-        self.linear = nn.Linear(128 * 5 * 4, 10)
-        self.softmax = nn.Softmax(dim=1)
+        self.linear = nn.Linear(13440, 2)
 
     def forward(self, input_data):
         x = self.conv1(input_data)
@@ -63,10 +62,10 @@ class CNNNetwork(nn.Module):
         #x is the result tensor
 
         x = self.flatten(x)
+        #print(x.shape) #batch size 2, 2560 featers per sample
         logits = self.linear(x)
-        predictions = self.softmax(logits)
 
-        return predictions
+        return logits
     
 
 if __name__ == "__main__":
