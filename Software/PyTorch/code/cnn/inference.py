@@ -100,6 +100,7 @@ if __name__ == "__main__":
     report = classification_report(targets, predictions, target_names=["RAS", "ANOMALIE"],output_dict=True,
     zero_division=0)
     df = pd.DataFrame(report).transpose()
+
     df.to_csv("classification_report.csv")
 
     cm = confusion_matrix(targets, predictions)

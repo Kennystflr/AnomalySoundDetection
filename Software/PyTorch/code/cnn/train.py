@@ -17,7 +17,7 @@ EPOCHS = 10
 LEARNING_RATE = .001 #adjust?
 
 ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/rapport_anomalies.csv"
-AUDIO_DIR = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/PyTorch/audio"
+AUDIO_DIR = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/audio"
 SAMPLE_RATE = 32000 #1 sec
 NUM_SAMPLES = 160000 #5 seconds
 
@@ -101,7 +101,8 @@ if __name__ == "__main__":
 
     loss_fn = nn.CrossEntropyLoss(weight=weights)
 
-    optimiser = torch.optim.Adam(cnn.parameters(), lr=LEARNING_RATE) #updates the model's weights to minimize loss
+    #regularizer applied : tweak value tho
+    optimiser = torch.optim.Adam(cnn.parameters(), lr=LEARNING_RATE, weight_decay=1e-5) #updates the model's weights to minimize loss
     all_epoch_losses = train(cnn, train_data_loader, loss_fn, optimiser, device, EPOCHS)
 
     torch.save(cnn.state_dict(), "cnnnet.pth") #storing the model
