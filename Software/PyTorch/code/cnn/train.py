@@ -16,10 +16,10 @@ BATCH_SIZE = 128
 EPOCHS = 10
 LEARNING_RATE = .001 #adjust?
 
-ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/rapport_anomalies.csv"
+ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/rapport_anomalies_optimize.csv"
 AUDIO_DIR = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/audio"
 SAMPLE_RATE = 32000 #1 sec
-NUM_SAMPLES = 160000 #5 seconds
+NUM_SAMPLES = 32000 * 5 #5 seconds
 
 
 def train_one_epoch(model, data_loader, loss_fn, optimiser, device, epoch_losses):
@@ -77,8 +77,8 @@ if __name__ == "__main__":
                             device)
 
     # Split dataset
-    train_size = int(0.9 * len(usd)) #90% training data
-    test_size = len(usd) - train_size #10% test data
+    train_size = int(0.95 * len(usd)) #95% training data
+    test_size = len(usd) - train_size #5% test data
 
     train_dataset, test_dataset = random_split(usd, [train_size, test_size]) 
 
@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     #4 - train model
 
-    labels = usd.annotations.iloc[:,5].map({"RAS":0,"ANOMALIE":1}).fillna(0)
+    labels = usd.annotations.iloc[:,6].map({"RAS":0,"ANOMALIE":1}).fillna(0)
     class_counts = np.bincount(labels.astype(int))
 
     weights = 1.0 / class_counts
