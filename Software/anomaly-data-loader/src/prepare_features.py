@@ -18,17 +18,9 @@ N_FFT = 1024
 HOP_LENGTH = 512
 N_MELS = 64
 
-RAW_DATA_DIR = Path("/mnt/elephant-seals/cetaceans")
-AUDIO_CHUNK_DIR = Path("Software/anomaly-data-loader/data/audio_chunks")
-MEL_DIR = Path("Software/anomaly-data-loader/data/mels")
-EMBEDDING_DIR = Path("Software/anomaly-data-loader/data/embeddings")
-
 METADATA_CSV = Path("Software/anomaly-data-loader/data/metadata.csv")
-REFERENCE_EMB = Path("Software/anomaly-data-loader/data/reference_embedding.npy")
-REFERENCE_STD = Path("Software/anomaly-data-loader/data/reference_std.npy")
-
-# Anomaly detection threshold
-ANOMALY_THRESHOLD = 0.25
+REFERENCE_EMB = Path("/opt/venv/AnomalySoundDetection/Software/anomaly-data-loader/data/reference/reference_signature.npy")
+REFERENCE_STD = Path("/opt/venv/AnomalySoundDetection/Software/anomaly-data-loader/data/reference/reference_std.npy")
 
 # =====================
 # Feature extraction
@@ -48,81 +40,46 @@ def extract_logmel(y):
 # =====================
 # Chunking with Perch 2.0 embeddings
 # =====================
-def chunk_wav_file(wav_path, perch_extractor, metadata_rows):
+SR_PERCH = 32000  # Perch requires 32kHz
+
+def chunk_wav_file(wav_path, perch_extractor, base_path, metadata_rows, threshold=0.316, batch_size=8):
     """
     Chunk a long audio file into 5s segments.
-    Extract mel-spectrograms and Perch 2.0 embeddings.
-    
+    Extract mel-spectrograms and Perch 2.0 embeddings (batched).
+
     Args:
         wav_path: Path to input WAV file
         perch_extractor: PerchExtractor instance
+        base_path: Base path for saving features
         metadata_rows: List to append metadata rows to
+        batch_size: Number of chunks to embed in one ONNX forward pass
     """
-    # Load at 16kHz for mel-spectrogram
-    y, _ = librosa.load(wav_path, sr=SR)
+    samples_per_chunk_mel = int(CHUNK_SEC * SR)
+    samples_per_chunk_perch = int(CHUNK_SEC * SR_PERCH)
 
-    samples_per_chunk = int(CHUNK_SEC * SR)
-    total_chunks = len(y) // samples_per_chunk
+    # Load audio once at each required sample rate
+    y_mel, _ = librosa.load(wav_path, sr=SR)
+    y_perch, _ = librosa.load(wav_path, sr=SR_PERCH)
 
+    total_chunks = len(y_mel) // samples_per_chunk_mel
+
+    # Load reference once
+    ref_emb = np.load(REFERENCE_EMB) if REFERENCE_EMB.exists() else None
+
+    # Create output directories once
+    (base_path / "audio_chunks").mkdir(parents=True, exist_ok=True)
+    (base_path / "mels").mkdir(parents=True, exist_ok=True)
+    (base_path / "embeddings").mkdir(parents=True, exist_ok=True)
+
+    # Identify which chunks still need embedding extraction
+    pending_indices = []
     for idx in range(total_chunks):
         base_name = f"{wav_path.stem}_chunk{idx:04d}"
+        audio_out = base_path / "audio_chunks" / f"{base_name}.wav"
+        mel_out   = base_path / "mels"         / f"{base_name}.npy"
+        emb_out   = base_path / "embeddings"   / f"{base_name}.npy"
 
-        audio_out = AUDIO_CHUNK_DIR / f"{base_name}.wav"
-        mel_out = MEL_DIR / f"{base_name}.npy"
-        emb_out = EMBEDDING_DIR / f"{base_name}.npy"
-
-        # Skip if already processed
         if audio_out.exists() and mel_out.exists() and emb_out.exists():
-            metadata_rows.append({
-                "chunk_id": base_name,
-                "audio_path": str(audio_out),
-                "mel_path": str(mel_out),
-                "embedding_path": str(emb_out),
-                "label": -1,  # unknown
-                "distance_to_ref": -1.0
-            })
-            continue
-
-        start = idx * samples_per_chunk
-        end = start + samples_per_chunk
-        y_chunk = y[start:end]
-
-        # Create directories
-        audio_out.parent.mkdir(parents=True, exist_ok=True)
-        mel_out.parent.mkdir(parents=True, exist_ok=True)
-        emb_out.parent.mkdir(parents=True, exist_ok=True)
-
-        # Save WAV chunk (16kHz for compatibility)
-        sf.write(audio_out, y_chunk, SR)
-
-        # Save mel-spectrogram
-        mel = extract_logmel(y_chunk)
-        np.save(mel_out, mel)
-
-        # Extract Perch 2.0 embedding from the saved WAV file
-        try:
-            embedding = perch_extractor.extract_embedding(str(audio_out))
-            np.save(emb_out, embedding)
-            
-            # Compute distance to reference if available
-            distance = -1.0
-            if REFERENCE_EMB.exists():
-                ref_emb = np.load(REFERENCE_EMB)
-                distance = perch_extractor.compute_distance(embedding, ref_emb)
-                label = 1 if distance > ANOMALY_THRESHOLD else 0
-            else:
-                label = -1  # unknown
-            
-            metadata_rows.append({
-                "chunk_id": base_name,
-                "audio_path": str(audio_out),
-                "mel_path": str(mel_out),
-                "embedding_path": str(emb_out),
-                "label": label,
-                "distance_to_ref": round(distance, 4)
-            })
-        except Exception as e:
-            print(f"Error extracting embedding for {base_name}: {e}")
             metadata_rows.append({
                 "chunk_id": base_name,
                 "audio_path": str(audio_out),
@@ -130,6 +87,60 @@ def chunk_wav_file(wav_path, perch_extractor, metadata_rows):
                 "embedding_path": str(emb_out),
                 "label": -1,
                 "distance_to_ref": -1.0
+            })
+            continue
+
+        # Save WAV and mel now; collect index for batch embedding
+        start_mel = idx * samples_per_chunk_mel
+        y_chunk = y_mel[start_mel : start_mel + samples_per_chunk_mel]
+
+        sf.write(audio_out, y_chunk, SR)
+        np.save(mel_out, extract_logmel(y_chunk))
+
+        pending_indices.append(idx)
+
+    # Run embedding inference in batches
+    for batch_start in range(0, len(pending_indices), batch_size):
+        batch_indices = pending_indices[batch_start : batch_start + batch_size]
+
+        # Build (N, samples_per_chunk_perch) batch from in-memory 32kHz audio
+        audio_batch = np.stack([
+            y_perch[idx * samples_per_chunk_perch : (idx + 1) * samples_per_chunk_perch]
+            for idx in batch_indices
+        ])
+
+        try:
+            embeddings = perch_extractor.extract_embeddings_batch(audio_batch)  # (N, dim)
+        except Exception as e:
+            print(f"Error running batch inference for {wav_path.stem}: {e}")
+            embeddings = None
+
+        for i, idx in enumerate(batch_indices):
+            base_name = f"{wav_path.stem}_chunk{idx:04d}"
+            audio_out = base_path / "audio_chunks" / f"{base_name}.wav"
+            mel_out   = base_path / "mels"         / f"{base_name}.npy"
+            emb_out   = base_path / "embeddings"   / f"{base_name}.npy"
+
+            if embeddings is not None:
+                embedding = embeddings[i]
+                np.save(emb_out, embedding)
+
+                distance = -1.0
+                label = -1
+                if ref_emb is not None:
+                    distance = perch_extractor.compute_distance(embedding, ref_emb)
+                    label = 1 if distance > threshold else 0
+            else:
+                label = -1
+                distance = -1.0
+
+            metadata_rows.append({
+                "chunk_id": base_name,
+                "audio_path": str(audio_out),
+                "mel_path": str(mel_out),
+                "embedding_path": str(emb_out),
+                "label": label,
+                "distance_to_ref": round(distance, 4)
             })
 
 # =====================
@@ -162,7 +173,7 @@ def build_reference_from_folder(folder_path, perch_extractor):
 # =====================
 # Main
 # =====================
-def main():
+def main(input_folder=Path("/mnt/gpu_storage/cs_courses/cetaceans/drift_dives_SES/samples"), output_base_path=Path("Software/anomaly-data-loader/data"), threshold=0.316):
     print("=== Anomaly Sound Detection - Data Preparation ===\n")
     
     # Initialize Perch extractor
@@ -174,26 +185,29 @@ def main():
         return
     
     # Create output directories
-    AUDIO_CHUNK_DIR.mkdir(parents=True, exist_ok=True)
-    MEL_DIR.mkdir(parents=True, exist_ok=True)
-    EMBEDDING_DIR.mkdir(parents=True, exist_ok=True)
+    output_base_path.mkdir(parents=True, exist_ok=True)
+    (output_base_path / "audio_chunks").mkdir(parents=True, exist_ok=True)
+    (output_base_path / "mels").mkdir(parents=True, exist_ok=True)
+    (output_base_path / "embeddings").mkdir(parents=True, exist_ok=True)
 
     print("=== Step 1: Chunking RAW WAV files ===")
     metadata_rows = []
     
-    wav_files = list(RAW_DATA_DIR.glob("*.wav"))
+    wav_files = list(input_folder.glob("*.wav"))
     if not wav_files:
-        print(f"No WAV files found in {RAW_DATA_DIR}")
+        print(f"No WAV files found in {input_folder}")
         return
     
     for wav_path in tqdm(wav_files, desc="Processing audio files"):
-        chunk_wav_file(wav_path, perch, metadata_rows)
+        chunk_wav_file(wav_path, perch, output_base_path, metadata_rows, threshold=threshold,batch_size=64)
     
     # Save metadata CSV
     print(f"\n=== Step 2: Saving metadata ===")
     df_metadata = pd.DataFrame(metadata_rows)
-    METADATA_CSV.parent.mkdir(parents=True, exist_ok=True)
-    df_metadata.to_csv(METADATA_CSV, index=False)
+    data_path = METADATA_CSV.parent
+    metadata_name = input_folder.name+"_metadata.csv"
+    data_path.mkdir(parents=True, exist_ok=True)
+    df_metadata.to_csv(data_path/metadata_name, index=False)
     print(f"Metadata saved: {METADATA_CSV}")
     print(f"   Total chunks: {len(df_metadata)}")
     

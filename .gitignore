@@ -2,3 +2,6 @@
 Software/Perch2.0/perch_v2.onnx
 *.wav
 *.onnx
+Software/anomaly-data-loader/data/*
+Software/ar_beats/checkpoints/*
+Software/ar_beats/models/unilm
