@@ -1,16 +1,16 @@
 import torch
 import torchaudio
-from cnn import CNNNetwork
+from cnn2 import ConvNeXtBinary
 import sys
 import os
 import pandas as pd
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from Software.PyTorch.code.animalsounddataset import AnimalSoundDataset
+from animalsounddataset2 import AnimalSoundDataset
 from torch.utils.data import random_split, DataLoader
 from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve, average_precision_score, f1_score
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-from train import AUDIO_DIR, NUM_SAMPLES, SAMPLE_RATE, ANNOTATIONS_FILE
+from train2 import AUDIO_DIR, NUM_SAMPLES, SAMPLE_RATE, ANNOTATIONS_FILE
 
 def evaluate(model, data_loader, device):
     model.eval()
@@ -25,13 +25,13 @@ def evaluate(model, data_loader, device):
             targets = targets.to(device)
 
             outputs = model(inputs)
-            probs = F.softmax(outputs, dim=1)
-            anomaly_probs = probs[:, 1]   # probability of class 1
-            _, preds = torch.max(outputs, 1)
+            probs = torch.sigmoid(outputs) #converts logits to probabilities
+            probs = probs.squeeze(1)             # [batch, 1] → [batch]
+            preds = (probs >= 0.5).long()        # threshold at 0.5 → 0 or 1
 
             all_preds.extend(preds.cpu().numpy())
             all_targets.extend(targets.cpu().numpy())
-            all_probs.extend(anomaly_probs.cpu().numpy())
+            all_probs.extend(probs.cpu().numpy())
 
     return all_preds, all_targets, all_probs
 
@@ -41,11 +41,13 @@ def predict(model, input, target, class_mapping):
                     # not needed when we are not training
         predictions = model(input)
         # Tensor (1, 10) -> given 1 class of input, tries to predict 10 values
-        
+
+        prob = torch.sigmoid(predictions).item()          # single probability
+        predicted_index = 1 if prob >= 0.5 else 0   # threshold
         # We are interested with the index with the highest value - highest chance
-        predicted_index = predictions[0].argmax(0) #index zero because we only have 1 sample
+
         #map predicted index to a class
-        predicted = class_mapping[predicted_index.item()]
+        predicted = class_mapping[predicted_index]
         expected = class_mapping[target.item()]
     
     return predicted, expected
@@ -53,8 +55,8 @@ def predict(model, input, target, class_mapping):
 
 if __name__ == "__main__":
     #load back the model
-    cnn = CNNNetwork()
-    state_dict = torch.load("cnnnet.pth", map_location=torch.device('cpu')) #loading the model we stored
+    cnn = ConvNeXtBinary()
+    state_dict = torch.load("cnnnet2.pth", map_location=torch.device('cpu')) #loading the model we stored
     cnn.load_state_dict(state_dict) #loading the dict into the model
 
     #load our dataset
@@ -78,6 +80,7 @@ if __name__ == "__main__":
     input, target = usd[0][0], usd[0][1] #initial sample both input and target
     input.unsqueeze_(0)
     #[batch size, num_channels, fr, time]
+    target = target.long()  # class_mapping expects an int key
     #make an inference - will build a new function
     predicted, expected = predict(cnn, input, target, class_mapping) #NN's know nothing about the classes, 
                                                                                 #they just use integers. class_mapping will map the integers to the classses
