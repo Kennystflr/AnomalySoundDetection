@@ -58,6 +58,7 @@ class AnimalSoundDataset(Dataset):
         signal = self._cut_if_necessary(signal) #too many samples
         signal = self._right_pad_if_necessary(signal) #zero-pad it if not enough samples
         signal = self.transformation(signal) #pass the signal into the mel spectrogram func
+        signal = signal.repeat(3, 1, 1)  # add this — repeats the 1 channel 3 times because ConvNext expects 3 channels not 1
         #signal is a tensor object -> (num_channels, samples)
 
         #mapping strings to ints for labels
@@ -70,7 +71,7 @@ class AnimalSoundDataset(Dataset):
                 label = int(label)
             except (ValueError, TypeError):
                 label = self.default_label
-        label = torch.tensor(label, dtype=torch.long)
+        label = torch.tensor(label, dtype=torch.float) #BCEWithLogitsLoss requres floats
 
         return signal, label
     
