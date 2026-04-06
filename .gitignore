@@ -2,3 +2,13 @@
 Software/Perch2.0/perch_v2.onnx
 *.wav
 *.onnx
+
+# Python junk
+__pycache__/
+*.pyc
+
+# Mac system files
+.DS_Store
+
+# Model weights / large files
+*.pth
