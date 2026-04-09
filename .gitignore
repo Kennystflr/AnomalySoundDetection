@@ -12,3 +12,5 @@ __pycache__/
 
 # Model weights / large files
 *.pth
+
+Software/PyTorch/code/cnn/cnnnet2.pth
