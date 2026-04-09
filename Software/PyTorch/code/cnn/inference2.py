@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torchaudio
 from cnn2 import ConvNeXtBinary
@@ -10,9 +11,10 @@ from torch.utils.data import random_split, DataLoader
 from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve, average_precision_score, f1_score
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+from splitting import get_file_based_splits
 from train2 import AUDIO_DIR, NUM_SAMPLES, SAMPLE_RATE, ANNOTATIONS_FILE
 
-def evaluate(model, data_loader, device):
+def evaluate(model, data_loader, device, threshold):
     model.eval()
 
     all_preds = []
@@ -27,7 +29,7 @@ def evaluate(model, data_loader, device):
             outputs = model(inputs)
             probs = torch.sigmoid(outputs) #converts logits to probabilities
             probs = probs.squeeze(1)             # [batch, 1] → [batch]
-            preds = (probs >= 0.5).long()        # threshold at 0.5 → 0 or 1
+            preds = (probs >= threshold).long()        # threshold calculated using PR curve
 
             all_preds.extend(preds.cpu().numpy())
             all_targets.extend(targets.cpu().numpy())
@@ -43,7 +45,7 @@ def predict(model, input, target, class_mapping):
         # Tensor (1, 10) -> given 1 class of input, tries to predict 10 values
 
         prob = torch.sigmoid(predictions).item()          # single probability
-        predicted_index = 1 if prob >= 0.5 else 0   # threshold
+        predicted_index = 1 if prob >= BEST_THRESHOLD else 0   # threshold
         # We are interested with the index with the highest value - highest chance
 
         #map predicted index to a class
@@ -56,8 +58,9 @@ def predict(model, input, target, class_mapping):
 if __name__ == "__main__":
     #load back the model
     cnn = ConvNeXtBinary()
-    state_dict = torch.load("cnnnet2.pth", map_location=torch.device('cpu')) #loading the model we stored
-    cnn.load_state_dict(state_dict) #loading the dict into the model
+    checkpoint = torch.load("cnnnet2.pth", map_location=torch.device('cpu'), weights_only=False) #loading the model we stored
+    cnn.load_state_dict(checkpoint["model_state_dict"]) #loading the dict into the model
+    BEST_THRESHOLD = checkpoint["threshold"]
 
     #load our dataset
     mel_spectrogram = torchaudio.transforms.MelSpectrogram(
@@ -76,7 +79,8 @@ if __name__ == "__main__":
 
     class_mapping = {0: "RAS", 1: "ANOMALIE"}
 
-    #get a sample from the validation dataset for inference
+    #get a sample from the 
+    #ion dataset for inference
     input, target = usd[0][0], usd[0][1] #initial sample both input and target
     input.unsqueeze_(0)
     #[batch size, num_channels, fr, time]
@@ -86,14 +90,12 @@ if __name__ == "__main__":
                                                                                 #they just use integers. class_mapping will map the integers to the classses
     
     #add metrics here
-    train_size = int(0.9 * len(usd))
-    test_size = len(usd) - train_size
 
-    _, test_dataset = random_split(usd, [train_size, test_size])
+    train_dataset, test_dataset = get_file_based_splits(usd, train_size=0.7, test_size=0.3, random_state=42)
 
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False) #the size of this batch size determines how fast it trains (larger == faster)
 
-    predictions, targets, probabilities = evaluate(cnn, test_loader, "cpu")
+    predictions, targets, probabilities = evaluate(cnn, test_loader, "cpu", threshold=BEST_THRESHOLD) #rerun using saved BEST_THRESHOLD
 
     # Compute and print F1 score
     f1 = f1_score(targets, predictions, average="weighted")
@@ -104,11 +106,11 @@ if __name__ == "__main__":
     zero_division=0)
     df = pd.DataFrame(report).transpose()
 
-    df.to_csv("classification_report.csv")
+    df.to_csv("classification_report2.csv")
 
     cm = confusion_matrix(targets, predictions)
     cm_df = pd.DataFrame(cm, index=["RAS Actual", "ANOMALIE Actual"], columns=["RAS Predicted", "ANOMALIE Predicted"])
-    with open("classification_report.csv", "a") as f:
+    with open("classification_report2.csv", "a") as f:
         f.write("\nConfusion Matrix\n")
         cm_df.to_csv(f)
 
@@ -132,6 +134,3 @@ if __name__ == "__main__":
     plt.legend()
     plt.savefig("precision_recall_curve.png")
     plt.close()
-
-    
-    #print(f"Predicted: '{predicted}', expected: '{expected}'")

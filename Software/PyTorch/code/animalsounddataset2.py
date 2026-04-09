@@ -15,7 +15,8 @@ class AnimalSoundDataset(Dataset):
         self.annotations = self._load_annotations(annotations_file)
         self.audio_dir = audio_dir
         self.device = device
-        self.transformation = transformation.to(self.device)
+        self.transformation = transformation.to(self.device) 
+
         self.target_sample_rate = target_sample_rate
         self.num_samples = num_samples
         # Define yo label mapping here
@@ -58,8 +59,17 @@ class AnimalSoundDataset(Dataset):
         signal = self._cut_if_necessary(signal) #too many samples
         signal = self._right_pad_if_necessary(signal) #zero-pad it if not enough samples
         signal = self.transformation(signal) #pass the signal into the mel spectrogram func
+        # mel spectrogram: (1, 64, T)
+
+        signal = torch.log(signal + 1e-9)
+
+        signal = torch.nn.functional.interpolate(
+            signal.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False
+        ).squeeze(0)  # (1, 224, 224)
+
         signal = signal.repeat(3, 1, 1)  # add this — repeats the 1 channel 3 times because ConvNext expects 3 channels not 1
         #signal is a tensor object -> (num_channels, samples)
+        #now its # (3, 224, 224)
 
         #mapping strings to ints for labels
         if pd.isna(label):
@@ -115,7 +125,7 @@ class AnimalSoundDataset(Dataset):
         return self.annotations.iloc[index, 6]
 
 if __name__ == "__main__":
-    ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/rapport_anomalies_optimize.csv"
+    ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/rapport_anomalies_optimize.csv"
     AUDIO_DIR = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/audio"
     SAMPLE_RATE = 22050
     NUM_SAMPLES = 22050 * 5 # 5 seconds if NUM_SAMPLES = 5 * sample_rate

@@ -12,7 +12,7 @@ class ConvNeXtBinary(nn.Module):
 
         # 2. Freeze the backbone - the backbone doesn't train anymore (it's already pre-trained)
         #for param in self.model.features.parameters():
-            #param.requires_grad = False
+        #    param.requires_grad = False
 
         # Get input features of classifier
         in_features = self.model.classifier[2].in_features
