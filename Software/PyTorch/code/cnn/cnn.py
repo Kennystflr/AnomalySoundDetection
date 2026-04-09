@@ -52,7 +52,7 @@ class CNNNetwork(nn.Module):
         )
 
         self.flatten = nn.Flatten()
-        self.linear = nn.Linear(13440, 2) #comment this out/delete it for your machine learning model
+        self.linear = nn.Linear(13440, 2)
 
     def forward(self, input_data):
         x = self.conv1(input_data)

@@ -5,7 +5,7 @@ import sys
 import os
 import pandas as pd
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from Software.PyTorch.code.animalsounddataset import AnimalSoundDataset
+from animalsounddataset import AnimalSoundDataset
 from torch.utils.data import random_split, DataLoader
 from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve, average_precision_score, f1_score
 import torch.nn.functional as F
@@ -97,10 +97,9 @@ if __name__ == "__main__":
     print(f"Weighted F1 Score: {f1:.4f}")
 
 
-    report = classification_report(targets, predictions, labels=[0, 1], target_names=["RAS", "ANOMALIE"],output_dict=True,
+    report = classification_report(targets, predictions, target_names=["RAS", "ANOMALIE"],output_dict=True,
     zero_division=0)
     df = pd.DataFrame(report).transpose()
-
     df.to_csv("classification_report.csv")
 
     cm = confusion_matrix(targets, predictions)
