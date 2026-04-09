@@ -21,8 +21,8 @@ class AnimalSoundDataset(Dataset):
         self.num_samples = num_samples
         # Define yo label mapping here
         self.label_map = {
-            'RAS': 0,
-            'ANOMALIE': 1
+            'Void': 0,
+            'Anomaly': 1
         }
         self.default_label = 0  # Use 0 for unknown labels
         
@@ -36,7 +36,7 @@ class AnimalSoundDataset(Dataset):
         else:
             raise ValueError(f"Unsupported annotations file format: {ext}")
         
-        df = df[df.iloc[:, 6].isin(["RAS", "ANOMALIE"])].reset_index(drop=True) #only keeps rows that dont have doute (is this what we want tho?)
+        df = df[df.iloc[:, 6].isin(["Void", "Anomaly"])].reset_index(drop=True) #only keeps rows that dont have doute (is this what we want tho?)
         return df
 
     def __len__(self):
@@ -125,7 +125,7 @@ class AnimalSoundDataset(Dataset):
         return self.annotations.iloc[index, 6]
 
 if __name__ == "__main__":
-    ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/rapport_anomalies_optimize.csv"
+    ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/cosine_final_synced.csv"
     AUDIO_DIR = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/audio"
     SAMPLE_RATE = 22050
     NUM_SAMPLES = 22050 * 5 # 5 seconds if NUM_SAMPLES = 5 * sample_rate

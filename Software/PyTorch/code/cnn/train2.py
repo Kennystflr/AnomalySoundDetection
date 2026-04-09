@@ -18,7 +18,7 @@ BATCH_SIZE = 128
 EPOCHS = 10
 LEARNING_RATE = .001 #adjust?
 
-ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/rapport_anomalies_optimize.csv"
+ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/cosine_final_synced.csv"
 AUDIO_DIR = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/audio"
 SAMPLE_RATE = 32000 #1 sec
 NUM_SAMPLES = 32000 * 5 #5 seconds
@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     # BCEWithLogitsLoss with pos_weight for Cross Entry Loss function and Sigmoid function (Logistic Regression)
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    print(f"Class counts: RAS={class_counts[0]}, ANOMALIE={class_counts[1]}")
+    print(f"Class counts: Void={class_counts[0]}, Anomaly={class_counts[1]}")
 
     #regularizer applied : tweak value tho
     #Only passing classifier head to optimizer, not the frozen layer because it's unnecessary

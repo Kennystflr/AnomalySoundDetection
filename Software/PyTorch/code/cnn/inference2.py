@@ -77,7 +77,7 @@ if __name__ == "__main__":
                             NUM_SAMPLES,
                             "cpu")
 
-    class_mapping = {0: "RAS", 1: "ANOMALIE"}
+    class_mapping = {0: "Void", 1: "Anomaly"}
 
     #get a sample from the 
     #ion dataset for inference
@@ -102,14 +102,14 @@ if __name__ == "__main__":
     print(f"Weighted F1 Score: {f1:.4f}")
 
 
-    report = classification_report(targets, predictions, labels=[0, 1], target_names=["RAS", "ANOMALIE"],output_dict=True,
+    report = classification_report(targets, predictions, labels=[0, 1], target_names=["Void", "Anomaly"],output_dict=True,
     zero_division=0)
     df = pd.DataFrame(report).transpose()
 
     df.to_csv("classification_report2.csv")
 
     cm = confusion_matrix(targets, predictions)
-    cm_df = pd.DataFrame(cm, index=["RAS Actual", "ANOMALIE Actual"], columns=["RAS Predicted", "ANOMALIE Predicted"])
+    cm_df = pd.DataFrame(cm, index=["Void Actual", "Anomaly Actual"], columns=["Void Predicted", "Anomaly Predicted"])
     with open("classification_report2.csv", "a") as f:
         f.write("\nConfusion Matrix\n")
         cm_df.to_csv(f)
