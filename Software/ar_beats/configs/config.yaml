@@ -13,8 +13,8 @@ project:
 # Data
 # -------------------------------------------------------------
 data:
-  root_dir: "/mnt/gpu_storage/cs_courses/cetaceans/outputs/ml19_292b/audio_chunks/"              # Root folder of audio clips
-  metadata_file: "data/ml19_292b_metadata.csv"  # CSV with columns: filename, label (0/1)
+  root_dir: "/mnt/gpu_storage/cs_courses/cetaceans/outputs/ml17_280a/audio_chunks/"              # Root folder of audio clips
+  metadata_file: "data/ml17_280a_metadata.csv"  # CSV with columns: filename, label (0/1)
   train_split: 0.8                  # Fraction of normal clips for training
   val_split: 0.1                    # Fraction of normal clips for validation
   # Remaining normal clips + all anomalous clips → test set
@@ -58,12 +58,12 @@ ar_cnn:
 # -------------------------------------------------------------
 training:
   batch_size: 64
-  max_epochs: 53                   # TODO [ASD — pre-submission]: update
+  max_epochs: 73                   # TODO [ASD — pre-submission]: update
   optimizer: adamw
   lr: 1.0e-3
   betas: [0.9, 0.999]
   weight_decay: 1.0e-2
-  early_stopping_patience: 10      # epochs without val NLL improvement
+  early_stopping_patience: 6      # epochs without val NLL improvement
   num_workers: 4
   pin_memory: true
   checkpoint_dir: "checkpoints"

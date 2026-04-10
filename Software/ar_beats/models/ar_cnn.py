@@ -205,7 +205,11 @@ class ARCNN(nn.Module):
         mu = self.head_mu(x).permute(0, 2, 3, 1)           # (B, H_p, W_p, D)
         log_var = self.head_log_var(x).permute(0, 2, 3, 1)  # (B, H_p, W_p, D)
 
-        # Clamp log_var for numerical stability: σ² ∈ [e^-10, e^10]
+        # Clamp log_var for numerical stability.
+        # min=-3 keeps σ² ≥ e^{-3} ≈ 0.05, preventing the model from
+        # becoming pathologically overconfident on training recordings
+        # (which would inflate NLL scores by 1/σ² on test recordings).
+        # max=10 prevents numerical overflow.
         log_var = torch.clamp(log_var, min=-3.0, max=10.0)
 
         return mu, log_var

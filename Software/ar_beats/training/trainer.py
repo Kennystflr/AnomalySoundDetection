@@ -122,11 +122,11 @@ class Trainer:
 
         with context:
             for batch in loader:
-                spec = batch["waveform"].to(self.device)  # (B, F, T)
+                waveform = batch["waveform"].to(self.device)  # (B, T)
 
-                # Extract BEATs tokens (no grad through encoder)
+                # Each batch: 64 clips × 31 × 8 = 15,872 token predictions
                 with torch.no_grad():
-                    E = self.encoder(spec)  # (B, H_p, W_p, D)
+                    E = self.encoder(waveform)  # (B, H_p, W_p, D)
 
                 mu, log_var = self.ar_model(E)
                 loss = nll_loss(E, mu, log_var)
@@ -154,5 +154,10 @@ class Trainer:
             "optimizer_state_dict": self.optimizer.state_dict(),
             "config": self.config,
         }
-        path = os.path.join(self.checkpoint_dir, "best.pt" if is_best else f"epoch_{epoch}.pt")
+        # Allow fold-specific filename override (used by LORO evaluation)
+        if is_best and hasattr(self, "_fold_ckpt_name"):
+            filename = self._fold_ckpt_name
+        else:
+            filename = "best.pt" if is_best else f"epoch_{epoch}.pt"
+        path = os.path.join(self.checkpoint_dir, filename)
         torch.save(state, path)

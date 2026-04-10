@@ -12,10 +12,11 @@ import argparse
 import os
 import yaml
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-from data.dataset import UnderwaterAudioDataset
+from data.dataset import UnderwaterAudioDataset, make_recording_splits
 from models.beats_encoder import BEATsEncoder
 from models.ar_cnn import ARCNN
 from evaluation.evaluate import Evaluator
@@ -36,13 +37,17 @@ def main(config_path: str, checkpoint_path: str):
     )
     print(f"Loaded token_mean  shape: {token_mean.shape}")
 
-    # ---- Test dataset ----
+    # ---- Reconstruct the same recording-stratified split ----
+    df = pd.read_csv(config["data"]["metadata_file"])
+    _, _, test_df = make_recording_splits(
+        df,
+        train_frac=config["data"]["train_split"],
+        val_frac=config["data"]["val_split"],
+        seed=config["project"]["seed"],
+    )
+
     test_dataset = UnderwaterAudioDataset(
-        config["data"]["metadata_file"],
-        config["data"]["root_dir"],
-        config,
-        split="test",
-        token_mean=token_mean,
+        test_df, config["data"]["root_dir"], config
     )
     test_loader = DataLoader(
         test_dataset,
@@ -68,7 +73,6 @@ def main(config_path: str, checkpoint_path: str):
         dilation=ar_cfg["dilation"],
     ).to(device)
 
-    # ---- Load checkpoint ----
     checkpoint = torch.load(checkpoint_path, map_location=device)
     ar_model.load_state_dict(checkpoint["model_state_dict"])
     print(f"Loaded checkpoint from epoch {checkpoint['epoch']} "
@@ -77,7 +81,6 @@ def main(config_path: str, checkpoint_path: str):
     # ---- Evaluate ----
     evaluator = Evaluator(encoder, ar_model, test_loader, config, device)
     results = evaluator.evaluate()
-
     return results
 
 
