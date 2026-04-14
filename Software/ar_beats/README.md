@@ -66,10 +66,3 @@ python evaluate.py --config configs/config.yaml \
 | Metrics | AUROC + AP | AP robust to 15% class imbalance |
 
 ---
-
-## TODO
-
-- [ ] **[ASD — pre-submission]** Replace `max_epochs: 100` in
-      `configs/config.yaml` with actual stopping epoch from first
-      training run (early stopping patience = 10).
-      *Calendar reminder set: 2026-03-28.*
