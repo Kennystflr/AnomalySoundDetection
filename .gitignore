@@ -15,3 +15,5 @@ __pycache__/
 
 Software/PyTorch/code/cnn/cnnnet2.pth
 Software/PyTorch/code/cnn/cnnnet.pth
+
+venv/
