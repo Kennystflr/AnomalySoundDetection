@@ -13,89 +13,110 @@ from sklearn.metrics import (
 
 
 def find_optimal_threshold(csv_file, output_folder="images"):
-    # 1. Loading and cleaning
+    """
+    Analyzes model performance by comparing software predictions against human validation.
+    It calculates the Precision-Recall curve to find the distance threshold that
+    maximizes the F1-Score and generates a comparison report.
+    """
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-        print(f"📁 Created folder: {output_folder}")
 
-    df = pd.read_csv(csv_file)
-    mask = df['Validation_Humaine'].isin(['ANOMALIE', 'RAS'])
-    df_clean = df[mask].copy()
+    # 1. Load CSV Data
+    try:
+        df = pd.read_csv(csv_file, encoding='utf-8')
+    except:
+        # Fallback for files with different encoding (common with Excel exports)
+        df = pd.read_csv(csv_file, encoding='latin-1')
 
-    if df_clean.empty:
-        print("❌ Not enough validated data to run evaluation.")
-        return
+    # 2. Strict Column Cleanup
+    # Standardize text columns to uppercase for consistent comparison
+    for col in ['Exploration', 'Human_validation', 'Status']:
+        if col in df.columns:
+            df[col] = df[col].astype(str).str.strip().str.upper()
 
-    # y_true : Ground Truth (1 for Anomaly, 0 for RAS/Noise)
-    y_true = df_clean['Validation_Humaine'].map({'ANOMALIE': 1, 'RAS': 0}).values
-    # Distances as raw scores
-    distances = df_clean['Distance'].values
+    # Convert Distance metric to numeric, turning errors into NaNs
+    df['Distance'] = pd.to_numeric(df['Distance'], errors='coerce')
 
-    # 2. Calculate curves
+    # 3. Filtering
+    # Only keep rows that have been explored and have a valid distance value
+    df = df[df['Exploration'] == 'TRUE'].copy()
+    df = df.dropna(subset=['Distance'])
+
+    if df.empty:
+        print("❌ Error: No valid data found after filtering.")
+        return None
+
+    # 4. MAPPING (y_true: Human Ground Truth | y_pred_initial: Software Logic)
+    # Convert text labels into binary integers (1 for Anomaly, 0 for Normal)
+    y_true = df['Human_validation'].map({'TRUE': 1, 'FALSE': 0}).fillna(0).astype(int).values
+    y_pred_initial = df['Status'].map({'ANOMALIE': 1, 'RAS': 0}).fillna(0).astype(int).values
+
+    distances = df['Distance'].values
+
+    # --- CALCULATE BASELINE PERFORMANCE (Before Optimization) ---
+    f1_before = f1_score(y_true, y_pred_initial, zero_division=0)
+    precision_before = precision_score(y_true, y_pred_initial, zero_division=0)
+    recall_before = recall_score(y_true, y_pred_initial, zero_division=0)
+
+    # 5. CALCULATE PRECISION-RECALL CURVE FOR OPTIMIZATION
+    # This computes precision and recall for every possible threshold in the distance data
     precisions, recalls, thresholds = precision_recall_curve(y_true, distances)
-    # Calculate F1-Score for each threshold
+
+    # Calculate F1-score for each threshold: F1 = 2 * (P * R) / (P + R)
     f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-10)
 
-    # Find optimal index
+    # Locate the index of the highest F1-score to find the best threshold
     ix = np.argmax(f1_scores)
-    best_threshold = thresholds[ix]
+    best_threshold = thresholds[ix] if ix < len(thresholds) else thresholds[-1]
 
-    # Final Metrics at optimal point
+    # Calculate predictions using the new optimal threshold
     y_pred_opti = (distances >= best_threshold).astype(int)
-    f1_final = f1_score(y_true, y_pred_opti)
-    pr_auc = auc(recalls, precisions)
+    f1_after = f1_score(y_true, y_pred_opti, zero_division=0)
 
-    print("\n" + "=" * 40)
-    print(f"🚀 PERFORMANCE SUMMARY - OPTIMAL THRESHOLD ({best_threshold:.4f})")
-    print("=" * 40)
-    print(classification_report(y_true, y_pred_opti, target_names=['Noise (RAS)', 'Anomaly']))
-    print("-" * 30)
-    print(f"✅ Precision : {precision_score(y_true, y_pred_opti):.2%}")
-    print(f"✅ Recall    : {recall_score(y_true, y_pred_opti):.2%}")
-    print(f"✅ F1-Score  : {f1_final:.2%}")
-    print(f"✅ PR-AUC    : {pr_auc:.4f}")
-    print("-" * 30)
+    # 6. DISPLAY COMPARATIVE RESULTS
+    print(f"🔍 Number of samples analyzed: {len(df)}")
 
-    # --- PLOT 1: Precision & Recall vs Threshold ---
+    print("\n" + "=" * 45)
+    print("📊 CURRENT PERFORMANCE (Fixed Software Threshold)")
+    print("=" * 45)
+    print(classification_report(y_true, y_pred_initial, target_names=['NORMAL', 'ANOMALY'], zero_division=0))
+    print(f"-> Current F1-Score: {f1_before:.2%}")
+
+    print("\n" + "=" * 45)
+    print(f"🚀 OPTIMAL PERFORMANCE (Suggested Threshold: {best_threshold:.4f})")
+    print("=" * 45)
+    print(classification_report(y_true, y_pred_opti, target_names=['NORMAL', 'ANOMALY'], zero_division=0))
+
+    print("-" * 45)
+    print(f"📈 F1-SCORE IMPROVEMENT: {f1_before:.2%} ➡️ {f1_after:.2%}")
+    print(f"✅ PR-AUC (Area Under Curve): {auc(recalls, precisions):.4f}")
+    print("-" * 45)
+
+    # 7. VISUALIZATION
+    # Plot the evolution of the F1-Score relative to the distance threshold
     plt.figure(figsize=(10, 6))
-    plt.plot(thresholds, precisions[:-1], 'b--', label='Precision', linewidth=2)
-    plt.plot(thresholds, recalls[:-1], 'g-', label='Recall', linewidth=2)
-    plt.axvline(best_threshold, color='red', linestyle=':', label=f'Optimal Threshold ({best_threshold:.3f})')
-    plt.title(f'Threshold Optimization (F1-Max: {f1_final:.2%})')
+    plt.plot(thresholds, f1_scores[:-1], color='orange', lw=2, label='F1-Score Curve')
+    plt.axvline(best_threshold, color='red', linestyle='--', label=f'Optimal Threshold: {best_threshold:.3f}')
+
+    plt.title(f'Threshold Optimization: Max F1-Score = {f1_after:.2%}')
     plt.xlabel('Distance Threshold')
-    plt.ylabel('Score')
+    plt.ylabel('F1-Score')
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.savefig(f"{output_folder}/threshold_optimization.png")
-    plt.show()
 
-    # --- PLOT 2: Precision-Recall Curve (Standard PR Curve) ---
-    plt.figure(figsize=(8, 6))
-    plt.plot(recalls, precisions, color='purple', lw=2, label=f'PR-AUC = {pr_auc:.4f}')
-    plt.fill_between(recalls, precisions, alpha=0.2, color='purple')
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.title('Precision-Recall Curve')
-    plt.legend(loc="lower left")
-    plt.grid(True, alpha=0.3)
-    plt.savefig(f"{output_folder}/precision_recall_curve.png")
-    plt.show()
+    # Save the plot for documentation or reports
+    plt.savefig(f"{output_folder}/f1_comparison.png")
+    plt.close()
 
-    # --- PLOT 3: F1-Score Curve ---
-    plt.figure(figsize=(8, 6))
-    plt.plot(thresholds, f1_scores[:-1], color='orange', lw=2, label='F1-Score')
-    plt.axhline(f1_final, color='red', linestyle='--', alpha=0.5)
-    plt.xlabel('Threshold')
-    plt.ylabel('F1-Score')
-    plt.title('F1-Score Curve across Thresholds')
-    plt.grid(True, alpha=0.3)
-    plt.savefig(f"{output_folder}/f1_score_curve.png")
-    plt.show()
-
-    print(f"✅ All plots saved in the '{output_folder}' directory.")
+    print(f"\n✅ Graph saved in '{output_folder}/f1_comparison.png'")
     return best_threshold
 
 
 if __name__ == "__main__":
-    CSV_FILE = "rapport_anomalies_optimize.csv"
-    best_seuil = find_optimal_threshold(CSV_FILE)
+    # Path to the report generated by the validation tool
+    CSV_FILE = "SAMPLES_EXTRACTED/rapport_anomalies_cosinus_2.csv"
+
+    if os.path.exists(CSV_FILE):
+        find_optimal_threshold(CSV_FILE)
+    else:
+        print(f"❌ File not found: {CSV_FILE}")

@@ -84,8 +84,8 @@ def get_weighted_distance(current_sig, ref_sig, std_dev):
     return dist
 
 def compile_reference(folder_neutre):
-    ref_file = "reference_signature_optimize.npy"
-    std_file = "reference_std_optimize.npy"
+    ref_file = "second_signature.npy"
+    std_file = ".npy"
     if os.path.exists(ref_file):
         print("📂 Chargement de la signature de référence existante...")
         ref_sig = np.load(ref_file)
@@ -97,7 +97,7 @@ def compile_reference(folder_neutre):
             np.save(ref_file, ref_sig)
             np.save(std_file, std_dev)
             print("💾 Signature sauvegardée.")
-            return ref_sig,std_dev
+            print( ref_sig,std_dev)
 
 
 def compile_anomaly_reference(csv_file, folder_test):
@@ -131,14 +131,14 @@ def compile_anomaly_reference(csv_file, folder_test):
 
     return np.mean(signatures, axis=0)
 
-def sorte1():
+def anomaly_detector_gaussian():
     start_total = time.perf_counter()  # ⏱ début chrono
     folder_neutre = "noise_sounds_5sec"
-    folder_test = "Sound2test"
-    output_csv = "rapport_anomalies_optimize.csv"
+    folder_test = "SAMPLES_EXTRACTED"
+    output_csv = "SAMPLES_EXTRACTED/rapport_anomalies_cosinus_2.csv"
 
     # --- SEUILS ---
-    threshold = 0.25  # Seuil pour une ANOMALIE
+    threshold = 0.316  # Seuil pour une ANOMALIE
     auto_label_limit = 0.0001# Seuil pour enrichir le dossier neutre
 
     # Assurer que le dossier neutre existe
@@ -230,113 +230,11 @@ def sorte1():
         print(f"⏱ Temps total de traitement : {end_total - start_total:.2f} secondes")
         print("=" * 40)
 
-def sorte2():
-    start_total = time.perf_counter()
-    folder_neutre = "noise_sounds_5sec"
-    folder_test = "Sound2test"
-    output_csv = "rapport_anomalies_optimize_distancenoise.csv"
-
-
-    # --- SEUILS OPTIMISÉS ---
-    threshold_noise = 0.3162  # Ton seuil optimal trouvé par le F1-Score
-    threshold_anomaly_sim = 0.15  # Seuil de proximité avec une anomalie connue
-    auto_label_limit = 0.0001  # Très strict pour l'enrichissement auto
-
-    if not os.path.exists(folder_neutre):
-        os.makedirs(folder_neutre)
-
-    # 1. Compilation des DEUX références
-    print("🔍 Compilation de la référence BRUIT...")
-    ref_noise = compile_reference(folder_neutre)
-
-    print("🔍 Compilation de la référence ANOMALIE (basée sur ton expertise)...")
-    ref_anomaly = compile_anomaly_reference("rapport_anomalies_optimize.csv", folder_test)
-
-    if ref_noise is not None:
-        test_files = [f for f in os.listdir(folder_test) if f.lower().endswith(('.wav', '.mp3'))]
-        all_results = []
-        segment_duration = 5
-
-        print(f"⌛ Analyse double-check sur {len(test_files)} fichiers...")
-
-        for filename in test_files:
-            full_path = os.path.join(folder_test, filename)
-            try:
-                # Signature du fichier actuel
-                current_sig = get_audio_signature(full_path).flatten()
-
-                # Distance 1 : Par rapport au bruit (plus c'est haut, plus c'est louche)
-                dist_noise = round(float(cosine(current_sig, ref_noise)), 4)
-
-                # Distance 2 : Par rapport aux anomalies connues (plus c'est bas, plus c'est louche)
-                dist_anomaly = 1.0
-                if ref_anomaly is not None:
-                    dist_anomaly = round(float(cosine(current_sig, ref_anomaly)), 4)
-
-                status = "RAS"
-                detect_reason = ""
-
-                # --- LOGIQUE DE DÉCISION HYBRIDE ---
-                # Cas A : C'est très proche du bruit habituel
-                if dist_noise < auto_label_limit:
-                    dest_path = os.path.join(folder_neutre, filename)
-                    if not os.path.exists(dest_path):
-                        shutil.move(full_path, dest_path)
-                        status = "ENRICHI (Neutre)"
-                    else:
-                        os.remove(full_path)
-                        status = "DOUBLON (Supprimé)"
-
-                # Cas B : C'est loin du bruit (ton ancien critère)
-                elif dist_noise > threshold_noise:
-                    status = "ANOMALIE"
-                    detect_reason = "Ecart bruit"
-
-                # Cas C : NOUVEAU - Ça ressemble à une anomalie que tu as déjà validée
-                elif dist_anomaly < threshold_anomaly_sim:
-                    status = "ANOMALIE"
-                    detect_reason = "Similitude expertise"
-
-                # Métadonnées temps
-                match = re.search(r'part(\d+)', filename)
-                part_index = int(match.group(1)) if match else 0
-                real_start_sec = part_index * segment_duration
-                minutes, seconds = divmod(real_start_sec, 60)
-
-                all_results.append({
-                    'Source Audio': filename,
-                    'Part': part_index,
-                    'Début (min:sec)': f"{int(minutes)}:{int(seconds):02d}",
-                    'Distance_Noise': dist_noise,
-                    'Distance_Anomaly': dist_anomaly,
-                    'Status': status,
-                    'Detection_Reason': detect_reason
-                })
-
-            except Exception as e:
-                print(f"❌ Erreur sur {filename}: {e}")
-
-        # Tri et Sauvegarde
-        results_sorted = sorted(all_results, key=lambda x: x['Distance_Noise'], reverse=True)
-        keys = ['Source Audio', 'Part', 'Début (min:sec)', 'Distance_Noise', 'Distance_Anomaly', 'Status',
-                'Detection_Reason']
-
-        try:
-            with open(output_csv, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=keys)
-                writer.writeheader()
-                writer.writerows(results_sorted)
-            print(f"📊 Analyse terminée. Double référence utilisée.")
-        except Exception as e:
-            print(f"❌ Erreur CSV : {e}")
-
-        print(f"⏱ Temps total : {time.perf_counter() - start_total:.2f}s")
-
-
 if __name__ == "__main__":
     #compile_reference("noise_sounds_5sec")
     #assess_neutral("noise_sounds_5sec")
-    sorte1()
+    anomaly_detector_gaussian()
+    #compile_reference("noise_sounds_5sec")
     #print("salut")
     #get_audio_signature("noise_sounds_5sec/ml19_292a_0015_part0.wav")
 
