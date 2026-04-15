@@ -14,12 +14,12 @@ from cnn2 import ConvNeXtBinary
 from sklearn.metrics import f1_score
 from splitting import get_file_based_splits
 
-BATCH_SIZE = 128
+BATCH_SIZE = 4
 EPOCHS = 10
-LEARNING_RATE = .001 #adjust?
+LEARNING_RATE = 5e-5 #adjust?
 
-ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/cosine_final_synced.csv"
-AUDIO_DIR = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/audio"
+ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/cosine_final_synced.csv"
+AUDIO_DIR = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/audio"
 SAMPLE_RATE = 32000 #1 sec
 NUM_SAMPLES = 32000 * 5 #5 seconds
 
@@ -74,7 +74,7 @@ def validate(model, data_loader, loss_fn, device):
 
     for t in thresholds:
         preds = (all_probs >= t).astype(int)
-        f1 = f1_score(all_targets, preds)
+        f1 = f1_score(all_targets, preds, average="weighted", zero_division=0)
 
         if f1 > best_f1:
             best_f1 = f1
@@ -90,7 +90,7 @@ def validate(model, data_loader, loss_fn, device):
     return avg_loss, weighted_f1, best_thresh
 
 
-def train(model, data_loader, loss_fn, optimiser, device, epochs):
+def train(model, data_loader, val_loader, loss_fn, optimiser, device, epochs):
     best_f1 = 0.0
     all_epoch_losses = []
 
@@ -99,6 +99,9 @@ def train(model, data_loader, loss_fn, optimiser, device, epochs):
         model.train()
         epoch_losses = []
         train_one_epoch(model, data_loader, loss_fn, optimiser, device, epoch_losses)
+
+        val_loss, val_f1, thresh = validate(model, val_loader, loss_fn, device)
+        print(f"Epoch {i+1} | Val Loss: {val_loss:.4f} | Val F1: {val_f1:.4f}")
 
         all_epoch_losses.append(epoch_losses)
 
@@ -129,7 +132,7 @@ if __name__ == "__main__":
                             mel_spectrogram, 
                             SAMPLE_RATE,
                             NUM_SAMPLES,
-                            device)
+                            device="cpu")
 
 
     #generator = torch.Generator().manual_seed(42)
@@ -137,20 +140,29 @@ if __name__ == "__main__":
     #    usd, [train_size, val_size, test_size], generator=generator
     #)
  # Split dataset (train/test only)
-    train_dataset, test_dataset = get_file_based_splits(usd, train_size=0.7, test_size=0.3, random_state=42)
+    train_val_dataset, test_dataset = get_file_based_splits(usd, train_size=0.7, test_size=0.3, random_state=42)
+    train_dataset, val_dataset = get_file_based_splits(train_val_dataset, train_size=0.8, test_size=0.2, random_state=42)
+    
     test_labels = [int(usd[i][1].item()) for i in test_dataset.indices]
     print("Test class counts:", np.bincount(test_labels))
 
     # Create loaders
     train_labels = [int(usd[i][1].item()) for i in train_dataset.indices]
     class_counts = np.bincount(train_labels)
+    
     class_weights = [1.0 / class_counts[label] for label in train_labels]
 
     #just on train dataset
     #sampler = torch.utils.data.WeightedRandomSampler(class_weights, num_samples=len(class_weights), replacement=True)
-    pos_weight = torch.tensor([class_counts[0] / class_counts[1]]).to(device)
+    if class_counts[1] < class_counts[0]:
+        pos_weight = torch.tensor([class_counts[0] / class_counts[1]]).to(device)
+    else:
+        pos_weight = torch.tensor([1.0]).to(device)
+        print("Warning: Anomaly is majority — pos_weight won't help, consider the sampler")
+    
     train_data_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True) #sampler is only for training
     test_data_loader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False)
+    val_data_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 
     print(f"Training using {device} device")
@@ -167,12 +179,12 @@ if __name__ == "__main__":
     optimiser = torch.optim.Adam(
         cnn.parameters(), #all parameters - unfrozen backbone
         lr=1e-4,
-        weight_decay=1e-5
+        weight_decay=1e-4
     ) #updates the model's weights to minimize loss
 
     #scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=EPOCHS)
 
-    all_epoch_losses = train(cnn, train_data_loader, loss_fn, optimiser, device, EPOCHS)
+    all_epoch_losses = train(cnn, train_data_loader, val_data_loader, loss_fn, optimiser, device, EPOCHS)
 
     print("Model trained and stored at cnnnet2.pth")
     test_loss, test_f1, best_thresh = validate(cnn, test_data_loader, loss_fn, device)

@@ -4,18 +4,24 @@ import pandas as pd
 import torchaudio
 import os
 import re
+import torch.nn as nn
+
 class AnimalSoundDataset(Dataset):
     def __init__(self, 
                  annotations_file, 
                  audio_dir, 
                  transformation, 
-                 target_sample_rate, 
+                 target_sample_rate,
                  num_samples,
                  device):
         self.annotations = self._load_annotations(annotations_file)
         self.audio_dir = audio_dir
         self.device = device
-        self.transformation = transformation.to(self.device) 
+
+        self.transformation = nn.Sequential(
+            transformation,
+            torchaudio.transforms.AmplitudeToDB(stype='power', top_db=80)
+        ).to(self.device)
 
         self.target_sample_rate = target_sample_rate
         self.num_samples = num_samples
@@ -51,9 +57,9 @@ class AnimalSoundDataset(Dataset):
         frame_offset = int(start_time * self.target_sample_rate) #five seconds
         num_frames = self.num_samples
 
-
         signal, sr = torchaudio.load(audio_sample_path, frame_offset=frame_offset, num_frames=num_frames) #signal and sample rate
         signal = signal.to(self.device)
+        #standardizing
         signal = self._resample_if_necessary(signal, sr)
         signal = self._mix_down_if_necessary(signal) #mix it down to mono
         signal = self._cut_if_necessary(signal) #too many samples
@@ -61,8 +67,13 @@ class AnimalSoundDataset(Dataset):
         signal = self.transformation(signal) #pass the signal into the mel spectrogram func
         # mel spectrogram: (1, 64, T)
 
-        signal = torch.log(signal + 1e-9)
+        # 3. Normalize the tensor to [0, 1] range
+        # Decibel values are usually negative (e.g., -80 to 0)
+        dist_min, dist_max = signal.min(), signal.max()
+        if dist_max - dist_min > 0:
+            signal = (signal - dist_min) / (dist_max - dist_min)
 
+        # Resize for ConvNeXt (224x224)
         signal = torch.nn.functional.interpolate(
             signal.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False
         ).squeeze(0)  # (1, 224, 224)
@@ -125,8 +136,8 @@ class AnimalSoundDataset(Dataset):
         return self.annotations.iloc[index, 6]
 
 if __name__ == "__main__":
-    ANNOTATIONS_FILE = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/cosine_final_synced.csv"
-    AUDIO_DIR = "/Users/saranorouzinia/Documents/Anomaly Sound Detection/audio"
+    ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/cosine_final_synced.csv"
+    AUDIO_DIR = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/audio"
     SAMPLE_RATE = 22050
     NUM_SAMPLES = 22050 * 5 # 5 seconds if NUM_SAMPLES = 5 * sample_rate
     
@@ -149,8 +160,9 @@ if __name__ == "__main__":
                             mel_spectrogram, 
                             SAMPLE_RATE,
                             NUM_SAMPLES,
-                            device)
+                            device="cpu")
 
     print(f"There are {len(usd)} samples in the dataset.")
+    print("Class counts:", usd.annotations.iloc[:, 6].value_counts()[["Void", "Anomaly"]].fillna(0).to_dict())
     signal, label = usd[0]
     a = 1

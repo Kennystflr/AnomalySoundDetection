@@ -39,6 +39,10 @@ def evaluate(model, data_loader, device, threshold):
 
 def predict(model, input, target, class_mapping):
     model.eval() #pytorch method that switches the model from training mode to evaluation mode
+    device = next(model.parameters()).device #get the device of the model parameters (cpu or gpu)
+    input = input.to(device)
+    target = target.to(device)
+
     with torch.no_grad(): # makes it s    class_mapping = {0: "RAS", 1: "ANOMALIE"}o that the model doesn't calculate the grad because it is
                     # not needed when we are not training
         predictions = model(input)
@@ -56,9 +60,11 @@ def predict(model, input, target, class_mapping):
 
 
 if __name__ == "__main__":
-    #load back the model
-    cnn = ConvNeXtBinary()
-    checkpoint = torch.load("cnnnet2.pth", map_location=torch.device('cpu'), weights_only=False) #loading the model we stored
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
+    #load back the modeltorch.device
+    cnn = ConvNeXtBinary().to(device)
+    checkpoint = torch.load("cnnnet2.pth", map_location=device, weights_only=False) #loading the model we stored
     cnn.load_state_dict(checkpoint["model_state_dict"]) #loading the dict into the model
     BEST_THRESHOLD = checkpoint["threshold"]
 
@@ -95,7 +101,7 @@ if __name__ == "__main__":
 
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False) #the size of this batch size determines how fast it trains (larger == faster)
 
-    predictions, targets, probabilities = evaluate(cnn, test_loader, "cpu", threshold=BEST_THRESHOLD) #rerun using saved BEST_THRESHOLD
+    predictions, targets, probabilities = evaluate(cnn, test_loader, device, threshold=BEST_THRESHOLD) #rerun using saved BEST_THRESHOLD
 
     # Compute and print F1 score
     f1 = f1_score(targets, predictions, average="weighted")
