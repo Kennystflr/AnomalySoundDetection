@@ -1,0 +1,20 @@
+csv: "Software/anomaly-data-loader/data/ml17_280a_metadata.csv" # Input CSV (chunk_id, audio_path, mel_path, embedding_path, label, distance_to_ref)
+
+# ── Mode ─────────────────────────────────────────────────────────────────────
+# sort     : move audio/mel/embedding files into normal/ doubt/ anomaly/ folders
+# metadata : write a metadata.csv with (filename, label) — normal=0, anomaly=1,
+#            doubt chunks are excluded
+mode: metadata  # "sort" or "metadata"
+
+# ── Thresholds ────────────────────────────────────────────────────────────────
+low: 0.25   # distance ≤ low  → normal  (label 0)
+high: 0.4   # distance > high → anomaly (label 1) | between → doubt (excluded in metadata mode)
+
+# ── Sort-mode options ─────────────────────────────────────────────────────────
+dry_run: false  # If true, only print what would be done without moving files
+
+# ── Metadata-mode options ─────────────────────────────────────────────────────
+metadata_output: "Software/ar_beats/data/ml17_280a_metadata.csv"  # Output path for metadata CSV
+
+# ── Shared ────────────────────────────────────────────────────────────────────
+verbose: true   # Print detailed info about each chunk being processed

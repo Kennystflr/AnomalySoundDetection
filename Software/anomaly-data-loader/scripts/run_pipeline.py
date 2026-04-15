@@ -2,7 +2,7 @@
 Complete pipeline for anomalous sound detection data preparation.
 Process raw audio files, extract features (mel, embeddings), and generate metadata.
 """
-import sys
+import sys, argparse
 from pathlib import Path
 
 # Add src to path
@@ -20,8 +20,13 @@ def main():
     # Step 1: Process and chunk raw audio
     print("\n[Step 1/2] Processing raw audio files...")
     print("-" * 60)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input-folder", type=Path, default=Path("/mnt/gpu_storage/cs_courses/cetaceans/drift_dives_SES/samples"))
+    parser.add_argument("--output-base-path", type=Path, default=Path("/mnt/gpu_storage/cs_courses/cetaceans/outputs"))
+    parser.add_argument("--threshold", type=float, default=0.316)
+    args = parser.parse_args()
     try:
-        prepare_main()
+        prepare_main(input_folder=args.input_folder, output_base_path=args.output_base_path/args.input_folder.name, threshold=args.threshold)
     except Exception as e:
         print(f"Error during feature preparation: {e}")
         return False
@@ -47,7 +52,7 @@ def main():
     print("Pipeline complete!")
     print("=" * 60)
     print("\nOutput structure:")
-    print("  data/")
+    print("  output/")
     print("    ├── audio_chunks/       (5s WAV files)")
     print("    ├── mels/               (mel-spectrograms)")
     print("    ├── embeddings/         (Perch 2.0 embeddings)")

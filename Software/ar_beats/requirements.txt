@@ -1,0 +1,18 @@
+# AR-BEATs requirements
+# Install: pip install -r requirements.txt
+
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+matplotlib>=3.7.0
+pyyaml>=6.0
+tqdm>=4.65.0
+soundfile>=0.12.0  
+
+# BEATs — install from source:
+# git clone https://github.com/microsoft/unilm
+# export PYTHONPATH=$PYTHONPATH:$(pwd)/unilm/beats
+# Download weights: https://aka.ms/beats/BEATs_iter3_plus_AS2M.pt
+# Place at: checkpoints/BEATs_iter3_plus_AS2M.pt

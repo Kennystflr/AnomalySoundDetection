@@ -1,0 +1,78 @@
+# =============================================================
+#  AR-BEATs — Central Configuration
+#  All hyperparameters in one place.
+#  TODO [ASD — pre-submission]: replace max_epochs with actual
+#  stopping epoch observed in training (patience = 10).
+# =============================================================
+
+project:
+  name: ar_beats
+  seed: 42
+
+# -------------------------------------------------------------
+# Data
+# -------------------------------------------------------------
+data:
+  root_dir: "/mnt/gpu_storage/cs_courses/cetaceans/outputs/ml17_280a/audio_chunks/"              # Root folder of audio clips
+  metadata_file: "data/ml17_280a_human_metadata.csv"  # CSV with columns: filename, label (0/1)
+  train_split: 0.8                  # Fraction of normal clips for training
+  val_split: 0.1                    # Fraction of normal clips for validation
+  # Remaining normal clips + all anomalous clips → test set
+  # NOTE: sample_rate is NOT used here — BEATs enforces 16000 Hz internally.
+  # Dataset resamples to 16000 Hz before passing waveforms to BEATs.
+  clip_duration: 5.0                # seconds
+
+# NOTE: No mel: section — BEATs handles its own preprocessing:
+#   torchaudio.compliance.kaldi.fbank(waveform,
+#     num_mel_bins=128, sample_frequency=16000,
+#     frame_length=25, frame_shift=10)
+#   fbank_mean=15.41663, fbank_std=6.55582 (fixed normalization)
+
+# -------------------------------------------------------------
+# BEATs encoder
+# -------------------------------------------------------------
+beats:
+  model_path: "checkpoints/BEATs_iter3_plus_AS2M.pt"
+  # Download from: https://aka.ms/beats/BEATs_iter3_plus_AS2M.pt
+  patch_size: 16                    # BEATs patch size (non-overlapping: stride=patch_size)
+  embed_dim: 768                    # D
+  # Correct grid for 5s clip at 16kHz:
+  #   mel frames: floor((80000-400)/160)+1 = 498
+  #   H_p = floor(498/16) = 31  (time)
+  #   W_p = 128/16 = 8          (frequency)
+  #   N   = 31*8 = 248 tokens
+  #   Each token = 160ms × 16 mel bins
+
+# -------------------------------------------------------------
+# AR CNN
+# -------------------------------------------------------------
+ar_cnn:
+  n_layers: 6
+  dilation: 8
+  kernel_size: 3
+  hidden_dim: 512                   # channels in intermediate layers
+  # Input/output dim = beats.embed_dim = 768
+
+# -------------------------------------------------------------
+# Training
+# -------------------------------------------------------------
+training:
+  batch_size: 64
+  max_epochs: 150                   
+  optimizer: adamw
+  lr: 1.0e-3
+  betas: [0.9, 0.999]
+  weight_decay: 1.0e-2
+  early_stopping_patience: 6      # epochs without val NLL improvement
+  num_workers: 4
+  pin_memory: true
+  checkpoint_dir: "checkpoints"
+  log_dir: "results/logs"
+
+# -------------------------------------------------------------
+# Evaluation
+# -------------------------------------------------------------
+evaluation:
+  metrics: [auroc, ap]
+  aggregation: max                  # max | mean over token grid → clip score
+  results_dir: "results"

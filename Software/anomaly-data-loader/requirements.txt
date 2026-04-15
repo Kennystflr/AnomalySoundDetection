@@ -5,6 +5,6 @@ torch
 soundfile
 scikit-learn
 matplotlib
-onnxruntime
+onnxruntime-gpu
 scipy
 tqdm

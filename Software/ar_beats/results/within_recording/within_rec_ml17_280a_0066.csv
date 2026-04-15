@@ -1,0 +1,6 @@
+filename,chunk_idx,time_start_s,time_end_s,time_start_min,time_end_min,label,score_lof,score_gaussian,pred_lof_p90,pred_gauss_p90,pred_lof_ms2,pred_gauss_ms2
+ml17_280a_0066_chunk0000.wav,0,0.0,5.0,0.0,0.083,0,0.9760998,753.8064,0,0,0,0
+ml17_280a_0066_chunk0001.wav,1,5.0,10.0,0.083,0.167,0,1.0016342,519.99664,0,0,0,0
+ml17_280a_0066_chunk0002.wav,2,10.0,15.0,0.167,0.25,0,1.0178386,571.70984,0,0,0,0
+ml17_280a_0066_chunk0003.wav,3,15.0,20.0,0.25,0.333,0,1.030226,824.6747,1,0,0,0
+ml17_280a_0066_chunk0009.wav,9,45.0,50.0,0.75,0.833,0,0.9760998,1169.8125,0,1,0,0
