@@ -15,7 +15,7 @@ from sklearn.metrics import f1_score
 from splitting import get_file_based_splits
 
 BATCH_SIZE = 4
-EPOCHS = 10
+EPOCHS = 20
 LEARNING_RATE = 5e-5 #adjust?
 
 ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/cosine_final_synced.csv"
@@ -90,9 +90,13 @@ def validate(model, data_loader, loss_fn, device):
     return avg_loss, weighted_f1, best_thresh
 
 
-def train(model, data_loader, val_loader, loss_fn, optimiser, device, epochs):
+def train(model, data_loader, val_loader, loss_fn, optimiser, device, epochs, scheduler):
     best_f1 = 0.0
+    patience = 5 #early stopping patience
+    epochs_no_improve = 0
     all_epoch_losses = []
+    #val_losses = []
+    #val_f1s = []
 
     for i in range(epochs):
         print(f"Epoch {i+1}")
@@ -101,12 +105,31 @@ def train(model, data_loader, val_loader, loss_fn, optimiser, device, epochs):
         train_one_epoch(model, data_loader, loss_fn, optimiser, device, epoch_losses)
 
         val_loss, val_f1, thresh = validate(model, val_loader, loss_fn, device)
+        scheduler.step(val_f1)
+
+        #when val loss starts going up you are overfitting
+        #val_losses.append(val_loss)
+        #val_f1s.append(val_f1)
         print(f"Epoch {i+1} | Val Loss: {val_loss:.4f} | Val F1: {val_f1:.4f}")
+
+        #early stopping
+        if val_f1 > best_f1:
+            best_f1 = val_f1
+            epochs_no_improve = 0
+
+            # save best model
+            torch.save({
+                "model_state_dict": model.state_dict(),
+                "threshold": thresh
+            }, "cnnnet2.pth")
+        else:
+            epochs_no_improve += 1
 
         all_epoch_losses.append(epoch_losses)
 
-        #scheduler.step()  # <-- add this at the end of each epoch
-        #print(f"LR: {scheduler.get_last_lr()}")  # optional but useful to verify it's decaying
+        if epochs_no_improve >= patience:
+            print("Early stopping triggered")
+            break
 
 
     print(f"Training done.")
@@ -158,7 +181,7 @@ if __name__ == "__main__":
         pos_weight = torch.tensor([class_counts[0] / class_counts[1]]).to(device)
     else:
         pos_weight = torch.tensor([1.0]).to(device)
-        print("Warning: Anomaly is majority — pos_weight won't help, consider the sampler")
+        print("Warning: Anomaly is majority — pos_weight is ignored")
     
     train_data_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True) #sampler is only for training
     test_data_loader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False)
@@ -178,22 +201,25 @@ if __name__ == "__main__":
     #Only passing classifier head to optimizer, not the frozen layer because it's unnecessary
     optimiser = torch.optim.Adam(
         cnn.parameters(), #all parameters - unfrozen backbone
-        lr=1e-4,
+        lr=5e-5,
         weight_decay=1e-4
     ) #updates the model's weights to minimize loss
 
-    #scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=EPOCHS)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimiser, mode='max', patience=2, factor=0.6
+    )
 
-    all_epoch_losses = train(cnn, train_data_loader, val_data_loader, loss_fn, optimiser, device, EPOCHS)
+    all_epoch_losses = train(cnn, train_data_loader, val_data_loader, loss_fn, optimiser, device, EPOCHS, scheduler)
+    
+    checkpoint = torch.load("cnnnet2.pth", map_location=device, weights_only=False)
+    cnn.load_state_dict(checkpoint["model_state_dict"])
+    best_thresh = checkpoint["threshold"]
 
     print("Model trained and stored at cnnnet2.pth")
-    test_loss, test_f1, best_thresh = validate(cnn, test_data_loader, loss_fn, device)
-    torch.save({
-        "model_state_dict": cnn.state_dict(),
-        "threshold": best_thresh
-    }, "cnnnet2.pth") #storing the model
+
+    test_loss, test_f1, test_thresh = validate(cnn, test_data_loader, loss_fn, device) #testing on the "best model" we just loaded
     
-    print(f"Test loss: {test_loss:.4f} | Test F1: {test_f1:.4f} | Best threshold: {best_thresh:.2f}")
+    print(f"Test loss: {test_loss:.4f} | Test F1: {test_f1:.4f} | Best threshold: {test_thresh:.2f}")
     all_losses = [loss for epoch in all_epoch_losses for loss in epoch]
     
     plt.hist(all_losses, bins=30)
