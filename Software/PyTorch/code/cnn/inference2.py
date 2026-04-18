@@ -108,7 +108,7 @@ if __name__ == "__main__":
     print(f"Weighted F1 Score: {f1:.4f}")
 
 
-    report = classification_report(targets, predictions, labels=[0, 1], target_names=["Void", "Anomaly"],output_dict=True,
+    report = classification_report(targets, predictions, labels=[0, 1], target_names=["Void(noise)", "Anomaly"],output_dict=True,
     zero_division=0)
     df = pd.DataFrame(report).transpose()
 
