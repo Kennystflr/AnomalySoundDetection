@@ -92,7 +92,7 @@ class BEATsEncoder(nn.Module):
                 "-O checkpoints/BEATs_iter3_plus_AS2M.pt"
             )
 
-        checkpoint = torch.load(model_path, map_location=device)
+        checkpoint = torch.load(model_path, map_location=device, weights_only=False)
         cfg = BEATsConfig(checkpoint["cfg"])
         self.model = BEATs(cfg)
         self.model.load_state_dict(checkpoint["model"])

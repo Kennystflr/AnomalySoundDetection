@@ -17,3 +17,5 @@ Software/PyTorch/code/cnn/cnnnet2.pth
 Software/PyTorch/code/cnn/cnnnet.pth
 
 venv/
+.venv/
+Software/ar_beats/models/unilm/
