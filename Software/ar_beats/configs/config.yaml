@@ -14,7 +14,7 @@ project:
 # -------------------------------------------------------------
 data:
   root_dir: "/mnt/gpu_storage/cs_courses/cetaceans/outputs/ml17_280a/audio_chunks/"              # Root folder of audio clips
-  metadata_file: "data/ml17_280a_human_metadata.csv"  # CSV with columns: filename, label (0/1)
+  metadata_file: "data/ml17_280a_human_metadata_delta.csv"  # CSV with columns: filename, label (0/1)
   train_split: 0.8                  # Fraction of normal clips for training
   val_split: 0.1                    # Fraction of normal clips for validation
   # Remaining normal clips + all anomalous clips → test set
