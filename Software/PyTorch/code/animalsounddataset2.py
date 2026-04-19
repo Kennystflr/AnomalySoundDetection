@@ -13,8 +13,8 @@ class AnimalSoundDataset(Dataset):
                  transformation, 
                  target_sample_rate,
                  num_samples,
-                 device):
-        self.annotations = self._load_annotations(annotations_file)
+                 device,
+                 exclude_files=None):
         self.audio_dir = audio_dir
         self.device = device
 
@@ -31,18 +31,29 @@ class AnimalSoundDataset(Dataset):
             'Anomaly': 1
         }
         self.default_label = 0  # Use 0 for unknown labels
+
+        self.annotations = self._load_annotations(annotations_file, exclude_files)
         
     
-    def _load_annotations(self, annotations_file):
+    def _load_annotations(self, annotations_file, exclude_files=None):
         ext = os.path.splitext(annotations_file)[1].lower()  # get file extension
         if ext == ".csv":
-            df = pd.read_csv(annotations_file)
+            df = pd.read_csv(annotations_file, encoding='latin1')
         elif ext in [".xls", ".xlsx"]:
             df = pd.read_excel(annotations_file)
         else:
             raise ValueError(f"Unsupported annotations file format: {ext}")
         
         df = df[df.iloc[:, 6].isin(["Void", "Anomaly"])].reset_index(drop=True) #only keeps rows that dont have doute (is this what we want tho?)
+        
+        # Exclude any rows whose base recording ID appears in exclude_files
+        # Base recording ID = filename stripped of _partXX.wav, e.g. "ml17_280a_0011"
+        if exclude_files:
+            recording_ids = df.iloc[:, 0].apply(
+                lambda x: re.sub(r'_part\d+\.wav$', '', str(x))
+            )
+            df = df[~recording_ids.isin(exclude_files)].reset_index(drop=True)
+        
         return df
 
     def __len__(self):
@@ -134,10 +145,103 @@ class AnimalSoundDataset(Dataset):
 
     def _get_audio_sample_label(self, index):
         return self.annotations.iloc[index, 6]
+    
+class ExpertResultDataset(AnimalSoundDataset): #whole new data loader class for Expert_results
+    def __init__(self, annotations_file, audio_dir, transformation,
+                 target_sample_rate, num_samples, device, annotator='Human_validation'):
+        self.annotator = annotator  # 'Exploration' or 'Human_validation'
+        super().__init__(annotations_file, audio_dir, transformation,
+                         target_sample_rate, num_samples, device)
+        
+    def _load_annotations(self, annotations_file, exclude_files=None):
+        ext = os.path.splitext(annotations_file)[1].lower()
+        if ext == ".csv":
+            df = pd.read_csv(annotations_file, encoding='latin1')
+        elif ext in [".xls", ".xlsx"]:
+            df = pd.read_excel(annotations_file)
+        else:
+            raise ValueError(f"Unsupported annotations file format: {ext}")
+ 
+        # Map True/False -> "Anomaly"/"Void" to match label_map
+        df = df[df['Exploration'] == df['Human_validation']].reset_index(drop=True) #agreement rows
+        df['label'] = df[self.annotator].map({True: 'Anomaly', False: 'Void'})
+
+        # Parse "M:SS:00" format into plain seconds (e.g. "0:25:00" -> 25, "4:45:00" -> 285)
+        def parse_time(t):
+            try:
+                parts = str(t).strip().split(':')
+                # Format is M:SS:00 — first field is minutes, second is seconds, third is ignored
+                return int(parts[0]) * 60 + int(parts[1])
+            except Exception:
+                return 0
+ 
+        df['Start(sec)'] = df['Start (min:sec)'].apply(parse_time)
+ 
+        # Rebuild as a normalized DataFrame matching the column positions AnimalSoundDataset expects:
+        # iloc[:,0]=filename, iloc[:,2]=Start(sec), iloc[:,6]=Human_validation
+        normalized = pd.DataFrame({
+            'Source Audio':     df['Source Audio'],
+            'Part':             df['Part'],
+            'Start(sec)':       df['Start(sec)'],
+            'Start (min:sec)':  df['Start (min:sec)'],
+            'col4':             None,
+            'col5':             None,
+            'Human_validation': df['label'],
+        })
+ 
+        normalized = normalized[
+            normalized['Human_validation'].isin(['Void', 'Anomaly'])
+        ].reset_index(drop=True)
+ 
+        return normalized
+    
+    def _get_audio_sample_path(self, index):
+        # Expert audio files keep _partXX in their filename, so no stripping needed
+        filename = self.annotations.iloc[index, 0]
+        path = os.path.join(self.audio_dir, filename)
+        return path
+    
+    def __getitem__(self, index):
+        audio_sample_path = self._get_audio_sample_path(index)
+        label = self._get_audio_sample_label(index)
+
+        # Expert files are already 5-second segments, so always load from the start
+        signal, sr = torchaudio.load(audio_sample_path, frame_offset=0, num_frames=self.num_samples)
+        signal = signal.to(self.device)
+        signal = self._resample_if_necessary(signal, sr)
+        signal = self._mix_down_if_necessary(signal)
+        signal = self._cut_if_necessary(signal)
+        signal = self._right_pad_if_necessary(signal)
+        signal = self.transformation(signal)
+
+        dist_min, dist_max = signal.min(), signal.max()
+        if dist_max - dist_min > 0:
+            signal = (signal - dist_min) / (dist_max - dist_min)
+
+        signal = torch.nn.functional.interpolate(
+            signal.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False
+        ).squeeze(0)
+        signal = signal.repeat(3, 1, 1)
+
+        if pd.isna(label):
+            label = self.default_label
+        elif isinstance(label, str):
+            label = self.label_map.get(label, self.default_label)
+        else:
+            try:
+                label = int(label)
+            except (ValueError, TypeError):
+                label = self.default_label
+        label = torch.tensor(label, dtype=torch.float)
+
+        return signal, label
+    
+#i hate this stupid file
 
 if __name__ == "__main__":
-    ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/cosine_final_synced.csv"
+    ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/Result/cosine_final_synced.csv"
     AUDIO_DIR = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/audio"
+    EXPERT_CSV = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Expert_Result/Expert_result.csv"
     SAMPLE_RATE = 22050
     NUM_SAMPLES = 22050 * 5 # 5 seconds if NUM_SAMPLES = 5 * sample_rate
     
@@ -164,5 +268,5 @@ if __name__ == "__main__":
 
     print(f"There are {len(usd)} samples in the dataset.")
     print("Class counts:", usd.annotations.iloc[:, 6].value_counts()[["Void", "Anomaly"]].fillna(0).to_dict())
-    signal, label = usd[0]
+    #signal, label = usd[0]
     a = 1

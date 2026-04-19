@@ -1,4 +1,5 @@
 import re
+import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -18,9 +19,10 @@ BATCH_SIZE = 4
 EPOCHS = 20
 LEARNING_RATE = 5e-5 #adjust?
 
-ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/CSV/cosine_final_synced.csv"
+ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/Result/cosine_final_synced.csv"
 AUDIO_DIR = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/audio"
-SAMPLE_RATE = 32000 #1 sec
+EXPERT_CSV = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Expert_Result/Expert_result.csv"
+SAMPLE_RATE = 32000 #1 secs
 NUM_SAMPLES = 32000 * 5 #5 seconds
 
 
@@ -150,12 +152,19 @@ if __name__ == "__main__":
         n_mels=64 
     )
 
+    expert_df = pd.read_csv(EXPERT_CSV, encoding='latin1')
+    expert_recording_ids = set(
+        expert_df['Source Audio'].apply(lambda x: re.sub(r'_part\d+\.wav$', '', str(x)))
+    )
+    print(f"Excluding {len(expert_recording_ids)} recording IDs from training data (reserved for test set)")
+
     usd = AnimalSoundDataset(ANNOTATIONS_FILE, 
                             AUDIO_DIR, 
                             mel_spectrogram, 
                             SAMPLE_RATE,
                             NUM_SAMPLES,
-                            device="cpu")
+                            device="cpu",
+                            exclude_files=expert_recording_ids)
 
 
     #generator = torch.Generator().manual_seed(42)
@@ -163,17 +172,16 @@ if __name__ == "__main__":
     #    usd, [train_size, val_size, test_size], generator=generator
     #)
  # Split dataset (train/test only)
-    train_val_dataset, test_dataset = get_file_based_splits(usd, train_size=0.7, test_size=0.3, random_state=42)
-    train_dataset, val_dataset = get_file_based_splits(train_val_dataset, train_size=0.8, test_size=0.2, random_state=42)
-    
-    test_labels = [int(usd[i][1].item()) for i in test_dataset.indices]
-    print("Test class counts:", np.bincount(test_labels))
+    train_dataset, val_dataset = get_file_based_splits(usd, train_size=0.8, val_size=0.2, random_state=42)
+    #train_val_dataset, test_dataset = get_file_based_splits(usd, train_size=0.7, test_size=0.3, random_state=42)
 
-    # Create loaders
-    train_labels = [int(usd[i][1].item()) for i in train_dataset.indices]
-    class_counts = np.bincount(train_labels)
     
-    class_weights = [1.0 / class_counts[label] for label in train_labels]
+    # Create loaders
+    train_labels = [usd.label_map.get(usd.annotations.iloc[i, 6], 0) for i in train_dataset.indices]
+    class_counts = np.bincount(train_labels)
+    print(f"Class counts: Void={class_counts[0]}, Anomaly={class_counts[1]}")
+    
+    #class_weights = [1.0 / class_counts[label] for label in train_labels]
 
     #just on train dataset
     #sampler = torch.utils.data.WeightedRandomSampler(class_weights, num_samples=len(class_weights), replacement=True)
@@ -184,7 +192,7 @@ if __name__ == "__main__":
         print("Warning: Anomaly is majority — pos_weight is ignored")
     
     train_data_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True) #sampler is only for training
-    test_data_loader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False)
+    #test_data_loader  = DataLoader(test_usd,  batch_size=BATCH_SIZE, shuffle=False)
     val_data_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 
@@ -217,9 +225,9 @@ if __name__ == "__main__":
 
     print("Model trained and stored at cnnnet2.pth")
 
-    test_loss, test_f1, test_thresh = validate(cnn, test_data_loader, loss_fn, device) #testing on the "best model" we just loaded
+    #test_loss, test_f1, test_thresh = validate(cnn, test_data_loader, loss_fn, device) #testing on the "best model" we just loaded
     
-    print(f"Test loss: {test_loss:.4f} | Test F1: {test_f1:.4f} | Best threshold: {test_thresh:.2f}")
+    #print(f"Test loss: {test_loss:.4f} | Test F1: {test_f1:.4f} | Best threshold: {test_thresh:.2f}")
     all_losses = [loss for epoch in all_epoch_losses for loss in epoch]
     
     plt.hist(all_losses, bins=30)

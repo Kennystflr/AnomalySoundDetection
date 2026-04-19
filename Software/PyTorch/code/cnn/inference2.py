@@ -6,13 +6,17 @@ import sys
 import os
 import pandas as pd
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from animalsounddataset2 import AnimalSoundDataset
+from animalsounddataset2 import AnimalSoundDataset, ExpertResultDataset
 from torch.utils.data import random_split, DataLoader
 from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve, average_precision_score, f1_score
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from splitting import get_file_based_splits
 from train2 import AUDIO_DIR, NUM_SAMPLES, SAMPLE_RATE, ANNOTATIONS_FILE
+
+
+EXPERT_CSV = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Expert_Result/Expert_result.csv"
+EXPERT_AUDIO_DIR = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/audio"
 
 def evaluate(model, data_loader, device, threshold):
     model.eval()
@@ -76,12 +80,23 @@ if __name__ == "__main__":
         n_mels=64 
     )
 
-    usd = AnimalSoundDataset(ANNOTATIONS_FILE, 
-                            AUDIO_DIR, 
-                            mel_spectrogram, 
-                            SAMPLE_RATE,
-                            NUM_SAMPLES,
-                            "cpu")
+    #test_usd = ExpertResultDataset(
+        #EXPERT_CSV,
+        #AUDIO_DIR,
+        #mel_spectrogram,
+        #SAMPLE_RATE,
+        #NUM_SAMPLES,
+        #device="cpu"
+    #)
+
+    usd = AnimalSoundDataset(
+        ANNOTATIONS_FILE,
+        AUDIO_DIR,
+        mel_spectrogram,
+        SAMPLE_RATE,
+        NUM_SAMPLES,
+        "cpu"
+    )
 
     class_mapping = {0: "Void", 1: "Anomaly"}
 
@@ -94,25 +109,29 @@ if __name__ == "__main__":
     #make an inference - will build a new function
     predicted, expected = predict(cnn, input, target, class_mapping) #NN's know nothing about the classes, 
                                                                                 #they just use integers. class_mapping will map the integers to the classses
-    
-    #add metrics here
 
-    train_dataset, test_dataset = get_file_based_splits(usd, train_size=0.7, test_size=0.3, random_state=42)
+    for annotator in ['Exploration', 'Human_validation']:
+        test_usd = ExpertResultDataset(
+            EXPERT_CSV, EXPERT_AUDIO_DIR, mel_spectrogram,
+            SAMPLE_RATE, NUM_SAMPLES, device="cpu",
+            annotator=annotator
+        )
 
-    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False) #the size of this batch size determines how fast it trains (larger == faster)
+    test_loader = DataLoader(test_usd, batch_size=32, shuffle=False) #the size of this batch size determines how fast it trains (larger == faster)
 
     predictions, targets, probabilities = evaluate(cnn, test_loader, device, threshold=BEST_THRESHOLD) #rerun using saved BEST_THRESHOLD
 
     # Compute and print F1 score
     f1 = f1_score(targets, predictions, average="weighted")
+    print(f"\n=== Annotator: {annotator} ===")
     print(f"Weighted F1 Score: {f1:.4f}")
 
 
-    report = classification_report(targets, predictions, labels=[0, 1], target_names=["Void(noise)", "Anomaly"],output_dict=True,
-    zero_division=0)
-    df = pd.DataFrame(report).transpose()
-
-    df.to_csv("classification_report2.csv")
+    
+    report = classification_report(targets, predictions, labels=[0, 1],
+                                   target_names=["Void", "Anomaly"],
+                                   output_dict=True, zero_division=0)
+    pd.DataFrame(report).transpose().to_csv(f"classification_report_{annotator}.csv")
 
     cm = confusion_matrix(targets, predictions)
     cm_df = pd.DataFrame(cm, index=["Void Actual", "Anomaly Actual"], columns=["Void Predicted", "Anomaly Predicted"])
