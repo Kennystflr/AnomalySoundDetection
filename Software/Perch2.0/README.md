@@ -1,4 +1,4 @@
-# 🐦 Perch 2.0 Integration Studies
+#Perch 2.0 Integration Studies
 
 This directory contains legacy folders (`V1/`, `V2/`) analyzing and validating embeddings specifically powered by the Perch 2.0 sound event detection model.
 
