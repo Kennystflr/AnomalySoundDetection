@@ -1,9 +1,6 @@
 <<<<<<< HEAD
 # Perch 2.0 - Anomaly Sound Detection
 =======
-#Perch 2.0 Integration Studies
->>>>>>> 2ac7930 (Fix title formatting in README.md)
-
 This directory contains the Perch 2.0 version of our Anomaly Sound Detection project. The pipeline leverages acoustic embeddings (from the Perch model) to identify abnormal audio events by comparing them against a statistically defined "normal" reference profile.
 
 ## Directory Structure Overview
