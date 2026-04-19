@@ -71,6 +71,8 @@ mkdir -p checkpoints
 wget -L "https://aka.ms/beats/BEATs_iter3_plus_AS2M.pt" -O checkpoints/BEATs_iter3_plus_AS2M.pt
 ```
 
+If the link above fails, download manually from the [BEATs releases page](https://github.com/microsoft/unilm/tree/master/beats) and place the `.pt` file at `checkpoints/BEATs_iter3_plus_AS2M.pt`.
+
 Verify the download succeeded (should be ~340 MB, **not** an HTML error page):
 
 ```bash

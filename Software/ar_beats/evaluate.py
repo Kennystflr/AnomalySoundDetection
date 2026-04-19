@@ -16,7 +16,7 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-from data.dataset import UnderwaterAudioDataset, make_recording_splits
+from data.dataset import UnderwaterAudioDataset
 from models.beats_encoder import BEATsEncoder
 from models.ar_cnn import ARCNN
 from evaluation.evaluate import Evaluator
@@ -37,14 +37,8 @@ def main(config_path: str, checkpoint_path: str):
     )
     print(f"Loaded token_mean  shape: {token_mean.shape}")
 
-    # ---- Reconstruct the same recording-stratified split ----
-    df = pd.read_csv(config["data"]["metadata_file"])
-    _, _, test_df = make_recording_splits(
-        df,
-        train_frac=config["data"]["train_split"],
-        val_frac=config["data"]["val_split"],
-        seed=config["project"]["seed"],
-    )
+    # ---- Load expert test set directly ----
+    test_df = pd.read_csv(config["data"]["test_metadata_file"])
 
     test_dataset = UnderwaterAudioDataset(
         test_df, config["data"]["root_dir"], config

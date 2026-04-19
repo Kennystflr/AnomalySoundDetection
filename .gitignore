@@ -20,3 +20,4 @@ venv/
 .venv/
 Software/ar_beats/models/unilm/
 Software/ar_beats/checkpoints/BEATs_iter3_plus_AS2M.pt
+Software/ar_beats/checkpoints/best.pt
