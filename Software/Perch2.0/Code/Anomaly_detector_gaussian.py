@@ -11,22 +11,26 @@ from scipy.spatial.distance import cosine
 import time
 from Treatment import frac_audio
 
-session = ort.InferenceSession("perch_v2.onnx")
+session = ort.InferenceSession("../models/perch_v2.onnx")
+
 
 def get_audio_signature(audio_path):
     audio, _ = librosa.load(audio_path, sr=32000, duration=5.0)
     input_tensor = np.zeros((1, 160000), dtype=np.float32)
-    input_tensor[0, :len(audio)] = audio
+    input_tensor[0, : len(audio)] = audio
     output_names = [o.name for o in session.get_outputs()]
     outputs = session.run(None, {session.get_inputs()[0].name: input_tensor})
     embedding = outputs[1]
     return embedding
 
 
-
 def assess_neutral(folder_path):
     signatures = []
-    audio_files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.wav', '.mp3', '.flac'))]
+    audio_files = [
+        f
+        for f in os.listdir(folder_path)
+        if f.lower().endswith((".wav", ".mp3", ".flac"))
+    ]
     if not audio_files:
         print("❌ Aucun fichier trouvé dans le dossier neutre.")
         return None, None
@@ -46,10 +50,13 @@ def assess_neutral(folder_path):
     overall_stability = np.mean(std_dev)
     print("-" * 30)
     print("✅ Signature de référence générée avec succès !")
-    print(f"Stabilité du milieu (plus c'est bas, mieux c'est) : {overall_stability:.4f}")
+    print(
+        f"Stabilité du milieu (plus c'est bas, mieux c'est) : {overall_stability:.4f}"
+    )
     print("-" * 30)
 
     return reference_signature, std_dev
+
 
 def check_anomaly(new_sample_path, reference, threshold=0.25):
     new_sig = get_audio_signature(new_sample_path).flatten()
@@ -70,7 +77,7 @@ def get_weighted_distance(current_sig, ref_sig, std_dev):
     """
     # 1. Calculer les poids (inverse de la variance)
     # On ajoute une petite constante (1e-6) pour éviter la division par zéro
-    weights = 1.0 / (std_dev ** 2 + 1e-6)
+    weights = 1.0 / (std_dev**2 + 1e-6)
 
     # 2. Appliquer les poids aux signatures
     # On multiplie par la racine carrée des poids pour que le produit scalaire
@@ -83,9 +90,10 @@ def get_weighted_distance(current_sig, ref_sig, std_dev):
 
     return dist
 
+
 def compile_reference(folder_neutre):
-    ref_file = "second_signature.npy"
-    std_file = ".npy"
+    ref_file = "../data/second_signature.npy"
+    std_file = "../data/.npy"
     if os.path.exists(ref_file):
         print("📂 Chargement de la signature de référence existante...")
         ref_sig = np.load(ref_file)
@@ -97,7 +105,7 @@ def compile_reference(folder_neutre):
             np.save(ref_file, ref_sig)
             np.save(std_file, std_dev)
             print("💾 Signature sauvegardée.")
-            print( ref_sig,std_dev)
+            print(ref_sig, std_dev)
 
 
 def compile_anomaly_reference(csv_file, folder_test):
@@ -108,14 +116,16 @@ def compile_anomaly_reference(csv_file, folder_test):
         return None
 
     df = pd.read_csv(csv_file)
-    if 'Validation_Humaine' not in df.columns:
+    if "Validation_Humaine" not in df.columns:
         return None
 
     # On filtre pour ne garder que tes validations réelles
-    anomaly_files = df[df['Validation_Humaine'] == 'ANOMALIE']['Source Audio'].tolist()
+    anomaly_files = df[df["Validation_Humaine"] == "ANOMALIE"]["Source Audio"].tolist()
 
     signatures = []
-    print(f"🧬 Compilation de la signature de référence des ANOMALIES ({len(anomaly_files)} fichiers)...")
+    print(
+        f"🧬 Compilation de la signature de référence des ANOMALIES ({len(anomaly_files)} fichiers)..."
+    )
 
     for filename in anomaly_files:
         path = os.path.join(folder_test, filename)  # On cherche dans Sound2test
@@ -131,15 +141,16 @@ def compile_anomaly_reference(csv_file, folder_test):
 
     return np.mean(signatures, axis=0)
 
+
 def anomaly_detector_gaussian():
     start_total = time.perf_counter()  # ⏱ début chrono
-    folder_neutre = "noise_sounds_5sec"
-    folder_test = "SAMPLES_EXTRACTED"
-    output_csv = "SAMPLES_EXTRACTED/rapport_anomalies_cosinus_2.csv"
+    folder_neutre = "../data/noise_sounds_5sec"
+    folder_test = "../data/SAMPLES_EXTRACTED"
+    output_csv = "../results/rapport_anomalies_cosinus_2.csv"
 
     # --- SEUILS ---
     threshold = 0.316  # Seuil pour une ANOMALIE
-    auto_label_limit = 0.0001# Seuil pour enrichir le dossier neutre
+    auto_label_limit = 0.0001  # Seuil pour enrichir le dossier neutre
 
     # Assurer que le dossier neutre existe
     if not os.path.exists(folder_neutre):
@@ -149,7 +160,9 @@ def anomaly_detector_gaussian():
     ref_sig = compile_reference(folder_neutre)
 
     if ref_sig is not None:
-        test_files = [f for f in os.listdir(folder_test) if f.lower().endswith(('.wav', '.mp3'))]
+        test_files = [
+            f for f in os.listdir(folder_test) if f.lower().endswith((".wav", ".mp3"))
+        ]
         all_results = []
         segment_duration = 5  # secondes
 
@@ -159,7 +172,7 @@ def anomaly_detector_gaussian():
             full_path = os.path.join(folder_test, filename)
             try:
                 # Calcul de la position temporelle
-                match = re.search(r'part(\d+)', filename)
+                match = re.search(r"part(\d+)", filename)
                 part_index = int(match.group(1)) if match else 0
                 real_start_sec = part_index * segment_duration
 
@@ -178,7 +191,8 @@ def anomaly_detector_gaussian():
                         shutil.move(full_path, dest_path)
                         status = "ENRICHI (Neutre)"
                         print(
-                            f"✅ {filename} est très proche de la référence ({dist_val}). Déplacé vers {folder_neutre}")
+                            f"✅ {filename} est très proche de la référence ({dist_val}). Déplacé vers {folder_neutre}"
+                        )
                     else:
                         os.remove(full_path)  # Doublon, on le supprime simplement
                         status = "DOUBLON (Supprimé)"
@@ -190,25 +204,34 @@ def anomaly_detector_gaussian():
                 minutes, seconds = divmod(real_start_sec, 60)
                 timestamp_min = f"{int(minutes)}:{int(seconds):02d}"
 
-                all_results.append({
-                    'Source Audio': filename,
-                    'Part': part_index,
-                    'Début (sec)': real_start_sec,
-                    'Début (min:sec)': timestamp_min,
-                    'Distance': dist_val,
-                    'Status': status
-                })
+                all_results.append(
+                    {
+                        "Source Audio": filename,
+                        "Part": part_index,
+                        "Début (sec)": real_start_sec,
+                        "Début (min:sec)": timestamp_min,
+                        "Distance": dist_val,
+                        "Status": status,
+                    }
+                )
 
             except Exception as e:
                 print(f"❌ Erreur sur le fichier {filename}: {e}")
 
         # Tri par distance (plus grosses anomalies en premier)
-        results_sorted = sorted(all_results, key=lambda x: x['Distance'], reverse=True)
+        results_sorted = sorted(all_results, key=lambda x: x["Distance"], reverse=True)
 
         # Écriture du CSV
-        keys = ['Source Audio', 'Part', 'Début (sec)', 'Début (min:sec)', 'Distance', 'Status']
+        keys = [
+            "Source Audio",
+            "Part",
+            "Début (sec)",
+            "Début (min:sec)",
+            "Distance",
+            "Status",
+        ]
         try:
-            with open(output_csv, 'w', newline='', encoding='utf-8') as f:
+            with open(output_csv, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=keys)
                 writer.writeheader()
                 writer.writerows(results_sorted)
@@ -219,8 +242,10 @@ def anomaly_detector_gaussian():
 
             print("\nTop 5 des anomalies détectées :")
             for res in results_sorted[:5]:
-                if res['Status'] == "ANOMALIE":
-                    print(f"⚠️ {res['Source Audio']} (Part {res['Part']}) - Distance: {res['Distance']}")
+                if res["Status"] == "ANOMALIE":
+                    print(
+                        f"⚠️ {res['Source Audio']} (Part {res['Part']}) - Distance: {res['Distance']}"
+                    )
 
         except Exception as e:
             print(f"❌ Erreur lors de l'écriture du CSV : {e}")
@@ -230,11 +255,11 @@ def anomaly_detector_gaussian():
         print(f"⏱ Temps total de traitement : {end_total - start_total:.2f} secondes")
         print("=" * 40)
 
-if __name__ == "__main__":
-    #compile_reference("noise_sounds_5sec")
-    #assess_neutral("noise_sounds_5sec")
-    anomaly_detector_gaussian()
-    #compile_reference("noise_sounds_5sec")
-    #print("salut")
-    #get_audio_signature("noise_sounds_5sec/ml19_292a_0015_part0.wav")
 
+if __name__ == "__main__":
+    # compile_reference("../data/noise_sounds_5sec")
+    # assess_neutral("../data/noise_sounds_5sec")
+    anomaly_detector_gaussian()
+    # compile_reference("../data/noise_sounds_5sec")
+    # print("salut")
+    # get_audio_signature("noise_sounds_5sec/ml19_292a_0015_part0.wav")
