@@ -1,4 +1,4 @@
-# 🌊 Anomaly Sound Detection
+# Anomaly Sound Detection
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
 [![Status](https://img.shields.io/badge/status-active-success.svg)]()
@@ -7,14 +7,14 @@ Welcome to the **Anomaly Sound Detection** repository! This is a research-orient
 
 The repository encompasses several deep learning and machine learning approaches to identify unusual audio patterns without relying completely on labeled anomalous data (unsupervised/semi-supervised anomaly detection).
 
-## 📊 Project Overview
+## Project Overview
 
 Anomalous sound detection has critical applications in machinery monitoring, environmental conservation, and medical diagnostics. This project explores state-of-the-art anomaly detection techniques such as:
 - **Spatial Autoregressive Modeling** on audio embeddings.
 - **Autoencoders and CNNs** for direct spectrogram anomaly scoring.
 - Utilizing robust pretrained models like **Perch 2.0** and **BEATs** to extract rich audio features.
 
-## 🗂️ Repository Structure
+## Repository Structure
 
 - **[`Software/`](Software/)**: The core implementation directory containing various models and data pipelines.
   - **[`ar_beats/`](Software/ar_beats/)**: Autoregressive Anomaly Detection (AR-BEATs) tailored for underwater bioacoustics.
@@ -24,7 +24,7 @@ Anomalous sound detection has critical applications in machinery monitoring, env
   - **[`Anatole_Result/`](Software/Anatole_Result/)**: Stored datasets, validation splits, and parsed anomaly comparisons (`.csv` / `.wav`).
 - **[`papers/`](papers/)**: A curated collection of relevant research literature driving this project.
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -43,11 +43,11 @@ To utilize the Perch capabilities in this repository, you may need to download t
 
 Place the model in the appropriate directory (e.g., inside `Software/Perch2.0/` or where referenced by your pipeline).
 
-## 📖 Literature & Research
+##  Literature & Research
 
 We base our methodology on extensive research from the field of audio anomaly detection. Feel free to explore the `papers/` directory, which covers topics spanning from deep denoising autoencoders to WaveNet-based anomaly detection mechanisms.
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions to this research project are welcome. Feel free to open an issue to discuss proposed features or bug fixes, and submit a Pull Request.
 
