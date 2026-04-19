@@ -5,19 +5,26 @@ from pathlib import Path
 import librosa
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 from scipy.io import wavfile
 import soundfile as sf
 
 # ─── CONFIG (must match annotation_tracker.py) ────────────────
-CSV_FILE      = "rapport_Anomalies_ml17_280a.csv"
-AUDIO_FOLDER  = "ml17_280a_5sec"
-MEL_FOLDER    = "ml17_280a_5sec_mel"   # output folder for .npy files
+CSV_FILE = "../results/rapport_Anomalies_ml17_280a.csv"
+AUDIO_FOLDER = "../data/ml17_280a_5sec"
+MEL_FOLDER = "../data/ml17_280a_5sec_mel"  # output folder for .npy files
 CLIP_DURATION = 5.0
-N_MELS        = 128
-FMAX          = 8000
+N_MELS = 128
+FMAX = 8000
 # ──────────────────────────────────────────────────────────────
 
-def extract_for_validation(CSV_FILE = "CSV/new_threshold.csv", SOURCE_FOLDER = "ml17_280a_5sec", DEST_FOLDER = "SAMPLES_EXTRACTED_2", QUANTITY = 50):
+
+def extract_for_validation(
+    CSV_FILE="../data/CSV/new_threshold.csv",
+    SOURCE_FOLDER="../data/ml17_280a_5sec",
+    DEST_FOLDER="../data/SAMPLES_EXTRACTED_2",
+    QUANTITY=50,
+):
     """
     Randomly samples a set of anomalies and normal sounds for human validation.
     It copies the selected audio files to a destination folder and generates a
@@ -31,10 +38,12 @@ def extract_for_validation(CSV_FILE = "CSV/new_threshold.csv", SOURCE_FOLDER = "
     df = pd.read_csv(CSV_FILE, sep=";")
 
     # 2. Filtering (Anomalies vs Normal)
-    anomalies_df = df[df['Status'].str.contains('⚠️ ANOMALIE', na=False)]
-    voids_df = df[df['Status'].str.contains('✅ NORMAL', na=False)]
+    anomalies_df = df[df["Status"].str.contains("⚠️ ANOMALIE", na=False)]
+    voids_df = df[df["Status"].str.contains("✅ NORMAL", na=False)]
 
-    print(f"📊 Available: {len(anomalies_df)} anomalies | {len(voids_df)} normal files.")
+    print(
+        f"📊 Available: {len(anomalies_df)} anomalies | {len(voids_df)} normal files."
+    )
 
     # 3. Sampling
     anom_sample = anomalies_df.sample(n=min(QUANTITY, len(anomalies_df)))
@@ -54,7 +63,7 @@ def extract_for_validation(CSV_FILE = "CSV/new_threshold.csv", SOURCE_FOLDER = "
 
     success_count = 0
     for _, row in selected_df.iterrows():
-        filename = row['Source Audio']
+        filename = row["Source Audio"]
         src_path = os.path.join(SOURCE_FOLDER, filename)
         dst_path = os.path.join(DEST_FOLDER, filename)  # Strict original filename
 
@@ -74,20 +83,37 @@ def extract_for_validation(CSV_FILE = "CSV/new_threshold.csv", SOURCE_FOLDER = "
     print(f"📄 Validation CSV created: {output_csv_path}")
     print("📝 User task: fill the 'Validation_Humaine' column.")
 
-def compute_and_save(audio_path: str, out_path: str) -> bool:
+
+def compute_and_save_png(audio_path: str, out_path: str) -> bool:
     """
-    Computes the Mel-spectrogram of a specific audio file, converts it to dB scale,
-    and saves the result (including sample rate and fmax) as a binary .npy file.
-    Returns True on success.
+    Calcule le spectrogramme de Mel, le convertit en dB,
+    et le sauvegarde sous forme d'image PNG.
     """
     try:
+        # 1. Chargement de l'audio
         y, sr = librosa.load(audio_path, duration=CLIP_DURATION, mono=True)
-        S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=N_MELS, fmax=FMAX)
-        S_dB = librosa.power_to_db(S, ref=np.max).astype(np.float32)
 
-        data = {"S_dB": S_dB, "sr": sr, "fmax": FMAX}
-        np.save(out_path, data, allow_pickle=True)
+        # 2. Calcul du spectrogramme de Mel
+        S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=N_MELS, fmax=FMAX)
+        S_dB = librosa.power_to_db(S, ref=np.max)
+
+        # 3. Création de la figure pour le PNG
+        plt.figure(figsize=(10, 4))
+        # On utilise une colormap souvent utilisée en bioacoustique (viridis ou magmna)
+        librosa.display.specshow(S_dB, sr=sr, fmax=FMAX, x_axis="time", y_axis="mel")
+
+        # Optionnel : Supprimer les axes si tu veux juste l'image brute pour de l'IA
+        # plt.axis('off')
+
+        # 4. Sauvegarde
+        # On remplace l'extension si nécessaire pour être sûr que c'est du .png
+        png_out_path = os.path.splitext(out_path)[0] + ".png"
+        plt.savefig(png_out_path, bbox_inches="tight", pad_inches=0)
+        plt.close()  # Important : ferme la figure pour libérer la mémoire vive
+
+        print(f"PNG saved: {png_out_path}")
         return True
+
     except Exception as exc:
         print(f"  [ERROR] {audio_path}: {exc}")
         return False
@@ -105,8 +131,11 @@ def main():
     if not os.path.exists(CSV_FILE):
         print(f"[ERROR] CSV not found: {CSV_FILE}")
         print("Falling back to scanning audio folder directly...")
-        audio_files = [f for f in os.listdir(AUDIO_FOLDER)
-                       if f.lower().endswith((".wav", ".mp3", ".flac", ".ogg"))]
+        audio_files = [
+            f
+            for f in os.listdir(AUDIO_FOLDER)
+            if f.lower().endswith((".wav", ".mp3", ".flac", ".ogg"))
+        ]
     else:
         df = pd.read_csv(CSV_FILE)
         audio_files = df["Source Audio"].dropna().unique().tolist()
@@ -139,9 +168,13 @@ def main():
             print(f"  [{i:>4}/{total}]  OK                     {filename}")
 
     print("─" * 60)
-    print(f"\nDone.  {success} computed,  {skipped} skipped,  "
-          f"{total - success - skipped} missing/failed\n")
-    print(f"Set MEL_FOLDER = \"{MEL_FOLDER}\" in annotation_tracker.py to use these files.")
+    print(
+        f"\nDone.  {success} computed,  {skipped} skipped,  "
+        f"{total - success - skipped} missing/failed\n"
+    )
+    print(
+        f'Set MEL_FOLDER = "{MEL_FOLDER}" in annotation_tracker.py to use these files.'
+    )
 
 
 def amplify_directory(input_dir, output_dir, gain=2.0):
@@ -177,7 +210,7 @@ def frac_audio(in_folder, out_folder):
         os.makedirs(out_folder)
         print(f"Folder created: {out_folder}")
 
-    extensions = ('.wav', '.mp3', '.flac', '.ogg')
+    extensions = (".wav", ".mp3", ".flac", ".ogg")
 
     for root, dirs, files in os.walk(in_folder):
         for filename in files:
@@ -215,3 +248,9 @@ def frac_audio(in_folder, out_folder):
                     sf.write(out_path, segment, sr)
 
                 print(f"✅ {filename} split into {num_segments} segments.")
+
+
+if __name__ == "__main__":
+    compute_and_save_png(
+        "SAMPLES_EXTRACTED/ml17_280a_0019_part17.wav", "../data/SAMPLES_EXCTRACTED"
+    )
