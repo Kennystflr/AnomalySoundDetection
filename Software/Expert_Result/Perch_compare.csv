@@ -1,4 +1,4 @@
-Source Audio,Part,Début (sec),Début (min:sec),Distance,Status,Exploration,Validation_Humaine,Comments,,,,,,,
+Source Audio,Part,Start(sec),Start (min:sec),Distance,Status,Exploration,Human_validation,Comments,,,,,,,
 ml17_280a_0011_part5.wav,5,25,0:25,0.3039,RAS,FALSE,FALSE,,,,,,,,
 ml17_280a_0011_part57.wav,57,285,4:45,0.1802,RAS,FALSE,FALSE,,,,,,,,
 ml17_280a_0014_part48.wav,48,240,4:00,0.2716,RAS,TRUE,TRUE,Cachalot,,,,,,,
