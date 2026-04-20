@@ -20,7 +20,7 @@ def transform_audio_metadata(input_csv, output_csv):
     # 3. Map labels: Human_validation TRUE/FALSE → 1/0
     # pandas reads TRUE/FALSE from CSV as Python booleans
     label_mapping = {True: 1, False: 0}
-    df['label'] = df['Human_validation'].map(label_mapping)
+    df['label'] = df['Exploration'].map(label_mapping)
     
     # 4. Final Cleanup
     df = df.dropna(subset=['label', 'filename'])
