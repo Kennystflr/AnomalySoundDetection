@@ -251,6 +251,4 @@ def frac_audio(in_folder, out_folder):
 
 
 if __name__ == "__main__":
-    compute_and_save_png(
-        "SAMPLES_EXTRACTED/ml17_280a_0019_part17.wav", "../data/SAMPLES_EXCTRACTED"
-    )
+    frac_audio("./Compare","./Compare/5sec_samples")
