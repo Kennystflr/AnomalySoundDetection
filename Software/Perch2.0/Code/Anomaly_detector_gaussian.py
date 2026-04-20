@@ -146,7 +146,7 @@ def anomaly_detector_gaussian():
     start_total = time.perf_counter()  # ⏱ début chrono
     folder_neutre = "../data/noise_sounds_5sec"
     folder_test = "../data/SAMPLES_EXTRACTED"
-    output_csv = "../results/rapport_anomalies_cosinus_2.csv"
+    output_csv = "../results/Perch2.0_result.csv"
 
     # --- SEUILS ---
     threshold = 0.316  # Seuil pour une ANOMALIE

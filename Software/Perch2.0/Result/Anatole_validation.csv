@@ -1,0 +1,101 @@
+Source Audio,Part,Exploration,Validation_Humaine,Comments
+ml17_280a_0011_part5.wav,5,FALSE,FALSE,
+ml17_280a_0011_part57.wav,57,FALSE,FALSE,
+ml17_280a_0014_part48.wav,48,TRUE,TRUE,Cachalot
+ml17_280a_0014_part56.wav,56,TRUE,TRUE,Cachalot
+ml17_280a_0019_part17.wav,17,TRUE,TRUE,Cachalot
+ml17_280a_0019_part5.wav,5,TRUE,TRUE,Cachalot
+ml17_280a_0021_part40.wav,40,FALSE,FALSE,
+ml17_280a_0025_part17.wav,17,FALSE,FALSE,
+ml17_280a_0029_part60.wav,60,FALSE,FALSE,
+ml17_280a_0031_part23.wav,23,FALSE,FALSE,
+ml17_280a_0033_part39.wav,39,TRUE,TRUE,Cachalot
+ml17_280a_0035_part12.wav,12,FALSE,FALSE,
+ml17_280a_0038_part4.wav,4,TRUE,TRUE,Cachalot
+ml17_280a_0039_part19.wav,19,TRUE,TRUE,Cachalot
+ml17_280a_0041_part29.wav,29,TRUE,FALSE,Bruit parasite
+ml17_280a_0046_part60.wav,60,FALSE,FALSE,
+ml17_280a_0048_part16.wav,16,FALSE,FALSE,
+ml17_280a_0052_part19.wav,19,TRUE,TRUE,Cachalot
+ml17_280a_0054_part42.wav,42,FALSE,FALSE,
+ml17_280a_0054_part53.wav,53,FALSE,FALSE,Bruit d'écoulement
+ml17_280a_0058_part44.wav,44,FALSE,FALSE,
+ml17_280a_0060_part18.wav,18,FALSE,FALSE,Bruit d'écoulement
+ml17_280a_0060_part43.wav,43,FALSE,FALSE,
+ml17_280a_0060_part66.wav,66,FALSE,FALSE,
+ml17_280a_0063_part66.wav,66,FALSE,FALSE,
+ml17_280a_0065_part8.wav,8,FALSE,FALSE,
+ml17_280a_0068_part9.wav,9,TRUE,TRUE,Baleine à bosse
+ml17_280a_0069_part33.wav,33,TRUE,FALSE,
+ml17_280a_0070_part53.wav,53,FALSE,FALSE,
+ml17_280a_0071_part14.wav,14,FALSE,FALSE,Bruit d'écoulement
+ml17_280a_0071_part55.wav,55,FALSE,FALSE,
+ml17_280a_0072_part33.wav,33,FALSE,FALSE,
+ml17_280a_0073_part43.wav,43,FALSE,FALSE,
+ml17_280a_0076_part12.wav,12,TRUE,FALSE,Bruit d'écoulement
+ml17_280a_0079_part39.wav,39,FALSE,FALSE,
+ml17_280a_0081_part11.wav,11,TRUE,TRUE,Baleine à bosse
+ml17_280a_0083_part21.wav,21,TRUE,TRUE,Baleine à bosse
+ml17_280a_0083_part51.wav,51,TRUE,TRUE,Baleine à bosse
+ml17_280a_0084_part41.wav,41,TRUE,TRUE,Baleine à bosse
+ml17_280a_0084_part60.wav,60,TRUE,TRUE,Baleine à bosse
+ml17_280a_0084_part62.wav,62,TRUE,TRUE,Baleine à bosse
+ml17_280a_0085_part23.wav,23,TRUE,TRUE,Baleine à bosse
+ml17_280a_0085_part4.wav,4,TRUE,TRUE,Baleine à bosse
+ml17_280a_0091_part38.wav,38,TRUE,TRUE,Baleine à bosse
+ml17_280a_0092_part21.wav,21,FALSE,FALSE,
+ml17_280a_0093_part7.wav,7,FALSE,FALSE,
+ml17_280a_0095_part47.wav,47,TRUE,TRUE,Cachalot/Baleine à bosse
+ml17_280a_0096_part39.wav,39,TRUE,TRUE,Baleine à bosse
+ml17_280a_0097_part29.wav,29,TRUE,TRUE,Cachalot/Baleine à bosse
+ml17_280a_0098_part21.wav,21,TRUE,TRUE,Cachalot
+ml17_280a_0098_part22.wav,22,TRUE,TRUE,Cachalot/Baleine à bosse
+ml17_280a_0098_part59.wav,59,TRUE,TRUE,Cachalot/Baleine à bosse
+ml17_280a_0099_part10.wav,10,TRUE,TRUE,Baleine à bosse
+ml17_280a_0103_part42.wav,42,TRUE,TRUE,Baleine à bosse au tout début (0
+ml17_280a_0108_part10.wav,10,FALSE,FALSE,Bruit d'écoulement
+ml17_280a_0109_part2.wav,2,FALSE,FALSE,Bruit d'écoulement
+ml17_280a_0109_part7.wav,7,FALSE,FALSE,
+ml17_280a_0110_part14.wav,14,FALSE,FALSE,
+ml17_280a_0110_part61.wav,61,TRUE,TRUE,Antarctic blue whale (27 Hz
+ml17_280a_0116_part9.wav,9,FALSE,FALSE,Bruit d'écoulement
+ml17_280a_0119_part29.wav,29,FALSE,FALSE,
+ml17_280a_0119_part54.wav,54,FALSE,FALSE,
+ml17_280a_0125_part11.wav,11,FALSE,FALSE,
+ml17_280a_0129_part60.wav,60,TRUE,TRUE,Baleine à bosse
+ml17_280a_0136_part10.wav,10,TRUE,FALSE,HF clicks
+ml17_280a_0137_part17.wav,17,TRUE,TRUE,Baleine à bosse
+ml17_280a_0137_part22.wav,22,TRUE,TRUE,Baleine à bosse
+ml17_280a_0137_part32.wav,32,TRUE,TRUE,Baleine à bosse
+ml17_280a_0137_part33.wav,33,TRUE,TRUE,Baleine à bosse
+ml17_280a_0137_part7.wav,7,TRUE,TRUE,Baleine à bosse
+ml17_280a_0138_part9.wav,9,TRUE,TRUE,Baleine à bosse
+ml17_280a_0140_part1.wav,1,TRUE,TRUE,Baleine à bosse
+ml17_280a_0140_part14.wav,14,TRUE,TRUE,Baleine à bosse
+ml17_280a_0140_part39.wav,39,TRUE,TRUE,Baleine à bosse
+ml17_280a_0140_part7.wav,7,TRUE,TRUE,Baleine à bosse
+ml17_280a_0140_part8.wav,8,TRUE,TRUE,Baleine à bosse
+ml17_280a_0142_part20.wav,20,TRUE,TRUE,Baleine à bosse
+ml17_280a_0143_part34.wav,34,TRUE,TRUE,Baleine à bosse
+ml17_280a_0144_part32.wav,32,TRUE,TRUE,Baleine à bosse
+ml17_280a_0144_part60.wav,60,FALSE,FALSE,
+ml17_280a_0149_part6.wav,6,TRUE,FALSE,Bruit parasite
+ml17_280a_0153_part2.wav,2,FALSE,FALSE,
+ml17_280a_0153_part23.wav,23,TRUE,TRUE,Baleine à bosse
+ml17_280a_0153_part59.wav,59,FALSE,FALSE,
+ml17_280a_0157_part10.wav,10,TRUE,FALSE,Bruit parasite
+ml17_280a_0158_part11.wav,11,TRUE,FALSE,Bruit parasite
+ml17_280a_0162_part32.wav,32,TRUE,TRUE,
+ml17_280a_0162_part59.wav,59,TRUE,TRUE,Très bas SNR en fin de segment
+ml17_280a_0163_part14.wav,14,TRUE,FALSE,
+ml17_280a_0164_part19.wav,19,TRUE,TRUE,
+ml17_280a_0164_part3.wav,3,TRUE,TRUE,
+ml17_280a_0166_part14.wav,14,TRUE,TRUE,
+ml17_280a_0166_part2.wav,2,TRUE,FALSE,Bruit parasite
+ml17_280a_0167_part0.wav,0,TRUE,FALSE,Bruit parasite
+ml17_280a_0167_part39.wav,39,FALSE,FALSE,
+ml17_280a_0167_part53.wav,53,FALSE,FALSE,
+ml17_280a_0169_part9.wav,9,TRUE,FALSE,
+ml17_280a_0170_part7.wav,7,TRUE,FALSE,Indeterminé
+ml17_280a_0173_part24.wav,24,TRUE,FALSE,Indeterminé 
+ml17_280a_0175_part0.wav,0,TRUE,FALSE,Indeterminé
