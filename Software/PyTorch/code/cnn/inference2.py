@@ -62,6 +62,46 @@ def predict(model, input, target, class_mapping):
     
     return predicted, expected
 
+def save_per_sample_csv(dataset, predictions, targets, probabilities, class_mapping, annotator):
+ 
+    # --- attempt to extract filenames from the dataset ---
+    filenames = None
+ 
+    if hasattr(dataset, "annotations") and isinstance(dataset.annotations, pd.DataFrame):
+        # Look for a column that likely holds the audio filename
+        candidate_cols = [c for c in dataset.annotations.columns
+                          if any(kw in c.lower() for kw in ("file", "path", "audio", "name"))]
+        if candidate_cols:
+            filenames = dataset.annotations[candidate_cols[0]].tolist()
+ 
+    if filenames is None and hasattr(dataset, "file_paths"):
+        filenames = dataset.file_paths
+ 
+    if filenames is None and hasattr(dataset, "audio_paths"):
+        filenames = dataset.audio_paths
+ 
+    # Fall back to sample indices
+    if filenames is None:
+        filenames = [f"sample_{i}" for i in range(len(predictions))]
+ 
+    # Trim filenames to match the number of predictions (in case of dataset length vs loader mismatch)
+    filenames = filenames[:len(predictions)]
+ 
+    rows = []
+    for fname, pred, target, prob in zip(filenames, predictions, targets, probabilities):
+        rows.append({
+            "filename":       os.path.basename(str(fname)),
+            "predicted_label": class_mapping[int(pred)],
+            "expected_label":  class_mapping[int(target)],
+            "probability":     round(float(prob), 4),
+            "correct":         int(pred) == int(target),
+        })
+ 
+    df = pd.DataFrame(rows)
+    out_path = f"per_sample_predictions_{annotator}.csv"
+    df.to_csv(out_path, index=False)
+    print(f"Per-sample predictions saved to: {out_path}")
+    return df
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -126,7 +166,7 @@ if __name__ == "__main__":
         print(f"\n=== Annotator: {annotator} ===")
         print(f"Weighted F1 Score: {f1:.4f}")
 
-
+        save_per_sample_csv(test_usd, predictions, targets, probabilities, class_mapping, annotator)
     
         report = classification_report(targets, predictions, labels=[0, 1],
                                     target_names=["Void", "Anomaly"],

@@ -104,3 +104,13 @@ Confusion Matrix
 ,Void Predicted,Anomaly Predicted
 Void Actual,13,39
 Anomaly Actual,5,43
+
+Confusion Matrix
+,Void Predicted,Anomaly Predicted
+Void Actual,13,25
+Anomaly Actual,5,57
+
+Confusion Matrix
+,Void Predicted,Anomaly Predicted
+Void Actual,13,39
+Anomaly Actual,5,43

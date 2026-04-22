@@ -239,7 +239,7 @@ class ExpertResultDataset(AnimalSoundDataset): #whole new data loader class for 
 #i hate this stupid file
 
 if __name__ == "__main__":
-    ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/Result/cosine_final_synced.csv"
+    ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/Result/cosine_final_synced.csv"
     AUDIO_DIR = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/audio"
     EXPERT_CSV = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Expert_Result/Expert_result.csv"
     SAMPLE_RATE = 22050
