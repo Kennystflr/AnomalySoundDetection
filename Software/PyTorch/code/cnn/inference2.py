@@ -16,7 +16,7 @@ from train2 import AUDIO_DIR, NUM_SAMPLES, SAMPLE_RATE, ANNOTATIONS_FILE
 
 
 EXPERT_CSV = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Expert_Result/Expert_result.csv"
-EXPERT_AUDIO_DIR = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/audio"
+EXPERT_AUDIO_DIR = "/home/GTL/snorouzi/Documents/Anomaly/ml17_280a_5sec"
 
 def evaluate(model, data_loader, device, threshold):
     model.eval()
@@ -117,45 +117,45 @@ if __name__ == "__main__":
             annotator=annotator
         )
 
-    test_loader = DataLoader(test_usd, batch_size=32, shuffle=False) #the size of this batch size determines how fast it trains (larger == faster)
+        test_loader = DataLoader(test_usd, batch_size=32, shuffle=False) #the size of this batch size determines how fast it trains (larger == faster)
 
-    predictions, targets, probabilities = evaluate(cnn, test_loader, device, threshold=BEST_THRESHOLD) #rerun using saved BEST_THRESHOLD
+        predictions, targets, probabilities = evaluate(cnn, test_loader, device, threshold=BEST_THRESHOLD) #rerun using saved BEST_THRESHOLD
 
-    # Compute and print F1 score
-    f1 = f1_score(targets, predictions, average="weighted")
-    print(f"\n=== Annotator: {annotator} ===")
-    print(f"Weighted F1 Score: {f1:.4f}")
+        # Compute and print F1 score
+        f1 = f1_score(targets, predictions, average="weighted")
+        print(f"\n=== Annotator: {annotator} ===")
+        print(f"Weighted F1 Score: {f1:.4f}")
 
 
     
-    report = classification_report(targets, predictions, labels=[0, 1],
-                                   target_names=["Void", "Anomaly"],
-                                   output_dict=True, zero_division=0)
-    pd.DataFrame(report).transpose().to_csv(f"classification_report_{annotator}.csv")
+        report = classification_report(targets, predictions, labels=[0, 1],
+                                    target_names=["Void", "Anomaly"],
+                                    output_dict=True, zero_division=0)
+        pd.DataFrame(report).transpose().to_csv(f"classification_report_{annotator}.csv")
 
-    cm = confusion_matrix(targets, predictions)
-    cm_df = pd.DataFrame(cm, index=["Void Actual", "Anomaly Actual"], columns=["Void Predicted", "Anomaly Predicted"])
-    with open("classification_report2.csv", "a") as f:
-        f.write("\nConfusion Matrix\n")
-        cm_df.to_csv(f)
+        cm = confusion_matrix(targets, predictions)
+        cm_df = pd.DataFrame(cm, index=["Void Actual", "Anomaly Actual"], columns=["Void Predicted", "Anomaly Predicted"])
+        with open("classification_report2.csv", "a") as f:
+            f.write("\nConfusion Matrix\n")
+            cm_df.to_csv(f)
 
-    # Display confusion matrix as a grid table
-    print("\nConfusion Matrix:")
-    print(cm_df)
+        # Display confusion matrix as a grid table
+        print("\nConfusion Matrix:")
+        print(cm_df)
 
-    plt.xlabel("Predicted")
-    plt.ylabel("Actual")
-    plt.title("Confusion Matrix")
-    plt.close()
+        plt.xlabel("Predicted")
+        plt.ylabel("Actual")
+        plt.title("Confusion Matrix")
+        plt.close()
 
-    precision, recall, thresholds = precision_recall_curve(targets, probabilities)
-    ap = average_precision_score(targets, probabilities)
+        precision, recall, thresholds = precision_recall_curve(targets, probabilities)
+        ap = average_precision_score(targets, probabilities)
 
-    plt.figure()
-    plt.plot(recall, precision, label=f"AP = {ap:.3f}")
-    plt.xlabel("Recall")
-    plt.ylabel("Precision")
-    plt.title("Precision-Recall Curve")
-    plt.legend()
-    plt.savefig("precision_recall_curve.png")
-    plt.close()
+        plt.figure()
+        plt.plot(recall, precision, label=f"AP = {ap:.3f}")
+        plt.xlabel("Recall")
+        plt.ylabel("Precision")
+        plt.title("Precision-Recall Curve")
+        plt.legend()
+        plt.savefig("precision_recall_curve.png")
+        plt.close()

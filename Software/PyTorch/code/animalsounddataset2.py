@@ -163,7 +163,7 @@ class ExpertResultDataset(AnimalSoundDataset): #whole new data loader class for 
             raise ValueError(f"Unsupported annotations file format: {ext}")
  
         # Map True/False -> "Anomaly"/"Void" to match label_map
-        df = df[df['Exploration'] == df['Human_validation']].reset_index(drop=True) #agreement rows
+        
         df['label'] = df[self.annotator].map({True: 'Anomaly', False: 'Void'})
 
         # Parse "M:SS:00" format into plain seconds (e.g. "0:25:00" -> 25, "4:45:00" -> 285)
@@ -239,7 +239,7 @@ class ExpertResultDataset(AnimalSoundDataset): #whole new data loader class for 
 #i hate this stupid file
 
 if __name__ == "__main__":
-    ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/Result/cosine_final_synced.csv"
+    ANNOTATIONS_FILE = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Perch2.0/V2/Result/cosine_final_synced.csv"
     AUDIO_DIR = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/audio"
     EXPERT_CSV = "/home/GTL/snorouzi/Documents/Anomaly Sound Detection/AnomalySoundDetection/Software/Expert_Result/Expert_result.csv"
     SAMPLE_RATE = 22050

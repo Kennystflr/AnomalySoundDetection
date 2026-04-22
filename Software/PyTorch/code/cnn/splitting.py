@@ -10,7 +10,7 @@ def _get_annotations_and_indices(dataset):
     else:
         return dataset.annotations, list(range(len(dataset)))
 
-def get_file_based_splits(dataset, train_size=0.8, test_size=0.2, random_state=42):
+def get_file_based_splits(dataset, train_size=0.8, val_size=0.2, random_state=42):
     annotations, available_indices = _get_annotations_and_indices(dataset)
 
     # 1. Group by base file
