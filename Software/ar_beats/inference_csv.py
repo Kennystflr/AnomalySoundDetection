@@ -13,7 +13,7 @@ Threshold is derived from the validation set at a given percentile
 Usage:
     python inference_csv.py --csv data/comparison_test.csv
     python inference_csv.py --csv data/comparison_test.csv --percentile 65
-    python inference_csv.py --csv data/comparison_test.csv --tau -417.2
+    python inference_csv.py --csv data/comparison_test.csv --tau -411.47
     python inference_csv.py --csv data/comparison_test.csv --no-threshold
 """
 
